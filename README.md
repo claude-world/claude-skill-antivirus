@@ -6,6 +6,9 @@
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org/)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-Opus_4.6-blueviolet.svg)](https://docs.anthropic.com/en/docs/claude-code)
 
+<!-- TODO: Replace with actual GIF -->
+<img src="assets/demo.gif" alt="Claude Skill Antivirus scanning a CLAUDE.md file for prompt injection" title="Demo shows: trigger scan → detect patterns → show results" />
+
 A security scanner and safe installer for Claude Code Skills. Detects malicious patterns, data exfiltration attempts, and dangerous operations before installing third-party skills.
 
 Compatible with Claude Code using Opus 4.6, Sonnet 4.6, and Haiku 4.5 models.
