@@ -1,8 +1,16 @@
 # Claude Skill Antivirus
 
+[![npm version](https://img.shields.io/npm/v/claude-skill-antivirus.svg)](https://www.npmjs.com/package/claude-skill-antivirus)
+[![CI](https://github.com/claude-world/claude-skill-antivirus/actions/workflows/ci.yml/badge.svg)](https://github.com/claude-world/claude-skill-antivirus/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org/)
+[![Claude Code](https://img.shields.io/badge/Claude_Code-Opus_4.6-blueviolet.svg)](https://docs.anthropic.com/en/docs/claude-code)
+
 一個安全的 Claude Skills 安裝器，內建完整的惡意行為偵測引擎。
 
 **Skills Installer + Antivirus for Claude**
+
+支援 Claude Code Opus 4.6、Sonnet 4.6、Haiku 4.5 模型。
 
 [English](./README.md) | [SkillsMP 掃描報告](./SCAN-REPORT.md)
 
@@ -320,6 +328,31 @@ claude-skill-antivirus/
 └── README.md
 ```
 
+## 更新紀錄
+
+### v2.1.0 (2026-03-13)
+- 確認相容 Claude Code Opus 4.6
+- 更新文件與中繼資料
+
+### v2.0.1
+- 權限掃描器分離能力警告與實際威脅
+- 修復 `allowed-tools` 的陣列格式處理
+
+### v2.0.0
+- 新增 4 個掃描引擎：MCP 安全、SSRF、依賴、Sub-agent 偵測（共 9 個引擎）
+- 新增多語言支援（英文 + 繁體中文）
+- 新增 SkillsMP 批次掃描功能
+- 掃描 SkillsMP 上所有 71,577 個技能
+
+### v1.0.0
+- 首次發布，包含 5 個核心掃描引擎
+- CLI 安裝器，含互動式提示
+
+## 相關專案
+
+- [cf-browser](https://github.com/claude-world/cf-browser) - 開源 Cloudflare 瀏覽器渲染代理，提供 9 個 MCP 工具給 Claude Code 使用
+- [claude-world.com](https://claude-world.com) - Claude Code 進階使用社群
+
 ## 貢獻
 
 歡迎貢獻！請隨時提交 issues 和 pull requests。
@@ -343,4 +376,5 @@ Lucas Wang <support@claude-world.com>
 ## 連結
 
 - [GitHub Repository](https://github.com/claude-world/claude-skill-antivirus)
+- [npm 套件](https://www.npmjs.com/package/claude-skill-antivirus)
 - [回報問題](https://github.com/claude-world/claude-skill-antivirus/issues)

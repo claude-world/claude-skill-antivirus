@@ -1,6 +1,6 @@
 {
   "name": "claude-skill-antivirus",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "description": "A secure Claude Skills installer with comprehensive malicious operation detection - Skills 安裝器 + 防毒軟體",
   "main": "src/index.js",
   "type": "module",

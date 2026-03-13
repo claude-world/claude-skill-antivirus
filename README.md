@@ -1,6 +1,14 @@
 # Claude Skill Antivirus
 
+[![npm version](https://img.shields.io/npm/v/claude-skill-antivirus.svg)](https://www.npmjs.com/package/claude-skill-antivirus)
+[![CI](https://github.com/claude-world/claude-skill-antivirus/actions/workflows/ci.yml/badge.svg)](https://github.com/claude-world/claude-skill-antivirus/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org/)
+[![Claude Code](https://img.shields.io/badge/Claude_Code-Opus_4.6-blueviolet.svg)](https://docs.anthropic.com/en/docs/claude-code)
+
 A security scanner and safe installer for Claude Code Skills. Detects malicious patterns, data exfiltration attempts, and dangerous operations before installing third-party skills.
+
+Compatible with Claude Code using Opus 4.6, Sonnet 4.6, and Haiku 4.5 models.
 
 [繁體中文說明](./README.zh-TW.md) | [SkillsMP Scan Report](./SCAN-REPORT.md)
 
@@ -327,6 +335,31 @@ claude-skill-antivirus/
 └── README.md
 ```
 
+## Latest Updates
+
+### v2.1.0 (2026-03-13)
+- Verified compatibility with Claude Code Opus 4.6
+- Updated documentation and metadata
+
+### v2.0.1
+- Separated capability warnings from actual threats in permission scanner
+- Fixed array format handling in `allowed-tools`
+
+### v2.0.0
+- Added 4 new scanning engines: MCP Security, SSRF, Dependency, and Sub-agent scanners (total: 9 engines)
+- Added i18n support (English + Traditional Chinese)
+- Added batch scanner for SkillsMP platform
+- Scanned all 71,577 skills on SkillsMP
+
+### v1.0.0
+- Initial release with 5 core scanning engines
+- CLI installer with interactive prompts
+
+## Related Projects
+
+- [cf-browser](https://github.com/claude-world/cf-browser) - Open-source Cloudflare Browser Rendering proxy with 9 MCP tools for Claude Code
+- [claude-world.com](https://claude-world.com) - Claude Code advanced usage community
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit issues and pull requests.
@@ -350,4 +383,5 @@ Lucas Wang <support@claude-world.com>
 ## Links
 
 - [GitHub Repository](https://github.com/claude-world/claude-skill-antivirus)
+- [npm Package](https://www.npmjs.com/package/claude-skill-antivirus)
 - [Report Issues](https://github.com/claude-world/claude-skill-antivirus/issues)
