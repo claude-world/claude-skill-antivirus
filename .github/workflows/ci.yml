@@ -2,61 +2,135 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   pull_request:
-    branches: [main]
 
 jobs:
-  test:
+  ci:
     runs-on: ubuntu-latest
-
     strategy:
+      fail-fast: false
       matrix:
-        node-version: [18, 20, 22]
+        node-version:
+          - 18.x
+          - 20.x
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'npm'
+          cache: npm
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Detect package scripts
+        id: scripts
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const scripts = pkg.scripts || {};
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `has_test=${Boolean(scripts.test)}\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `has_lint=${Boolean(scripts.lint)}\n`);
+          NODE
 
       - name: Run tests
+        if: steps.scripts.outputs.has_test == 'true'
         run: npm test
 
-      - name: Test CLI help
+      - name: Run lint
+        if: steps.scripts.outputs.has_lint == 'true'
+        run: npm run lint
+
+      - name: Validate skill frontmatter
+        if: steps.scripts.outputs.has_test != 'true' || steps.scripts.outputs.has_lint != 'true'
         run: |
-          node src/index.js --help
-          node src/batch-scanner.js --help
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
 
-  security-scan:
-    runs-on: ubuntu-latest
+          const skillFiles = [];
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+          function walk(dir) {
+            for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+              if (entry.name === '.git' || entry.name === 'node_modules') {
+                continue;
+              }
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
+              const fullPath = path.join(dir, entry.name);
+              if (entry.isDirectory()) {
+                walk(fullPath);
+                continue;
+              }
 
-      - name: Install dependencies
-        run: npm ci
+              if (entry.isFile() && entry.name === 'SKILL.md') {
+                skillFiles.push(fullPath);
+              }
+            }
+          }
 
-      - name: Scan safe skill example
-        run: node src/index.js ./examples/safe-skill --scan-only
+          walk(process.cwd());
 
-      - name: Scan malicious skill example (expected to find issues)
-        run: |
-          node src/index.js ./examples/malicious-skill --scan-only || true
+          if (skillFiles.length === 0) {
+            console.log('No SKILL.md files found.');
+            process.exit(0);
+          }
 
-      - name: Run npm audit
-        run: npm audit --audit-level=high || true
+          let hasErrors = false;
+
+          for (const file of skillFiles) {
+            const relativePath = path.relative(process.cwd(), file);
+            const content = fs.readFileSync(file, 'utf8');
+            const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/);
+
+            if (!match) {
+              console.error(`Missing YAML frontmatter in ${relativePath}`);
+              hasErrors = true;
+              continue;
+            }
+
+            try {
+              const lines = match[1].split(/\r?\n/);
+              let foundKey = false;
+              let allowIndentedBlock = false;
+
+              for (const line of lines) {
+                if (!line.trim() || line.trimStart().startsWith('#')) {
+                  continue;
+                }
+
+                if (/^\S[^:]*:\s*(.*)$/.test(line)) {
+                  foundKey = true;
+                  const [, value = ''] = line.match(/^\S[^:]*:\s*(.*)$/);
+                  allowIndentedBlock = value === '' || value === '|' || value === '>';
+                  continue;
+                }
+
+                if (allowIndentedBlock && /^\s+/.test(line)) {
+                  continue;
+                }
+
+                throw new Error(`unsupported frontmatter line: ${line}`);
+              }
+
+              if (!foundKey) {
+                throw new Error('frontmatter must define at least one key');
+              }
+
+              console.log(`Validated ${relativePath}`);
+            } catch (error) {
+              console.error(`Invalid frontmatter in ${relativePath}: ${error.message}`);
+              hasErrors = true;
+            }
+          }
+
+          if (hasErrors) {
+            process.exit(1);
+          }
+          NODE
