@@ -4,7 +4,7 @@
 export const zhTW = {
   // CLI messages
   cli: {
-    title: 'Claude Skill 安裝器 v2.0.0',
+    title: 'Claude Skill 安裝器 v2.1.3',
     fetching: '正在獲取 skill 內容...',
     skillLoaded: 'Skill 載入完成: {name}',
     startingScan: '開始安全掃描...',

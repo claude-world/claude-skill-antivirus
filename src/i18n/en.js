@@ -4,7 +4,7 @@
 export const en = {
   // CLI messages
   cli: {
-    title: 'Claude Skill Installer v2.0.0',
+    title: 'Claude Skill Installer v2.1.3',
     fetching: 'Fetching skill content...',
     skillLoaded: 'Skill loaded: {name}',
     startingScan: 'Starting security scan...',
