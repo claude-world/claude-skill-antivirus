@@ -171,6 +171,22 @@ ${description}
   }
 
   async fetchFromGitHub(url) {
+    // If URL points to a repo root (no file path), try SKILL.md on default branch
+    const repoRootMatch = url.match(/^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/?$/);
+    if (repoRootMatch) {
+      const [, owner, repo] = repoRootMatch;
+      // Try common default branches
+      for (const branch of ['main', 'master']) {
+        const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/SKILL.md`;
+        const response = await fetch(rawUrl);
+        if (response.ok) {
+          const content = await response.text();
+          return this.parseSkillMd(content, url);
+        }
+      }
+      throw new Error(`No SKILL.md found at ${url} (tried main and master branches)`);
+    }
+
     // Convert GitHub URL to raw content URL
     const rawUrl = this.convertToGitHubRaw(url);
 
