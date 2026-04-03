@@ -14,7 +14,7 @@ const program = new Command();
 program
   .name('skill-install')
   .description('A secure Claude Skills installer with malicious operation detection')
-  .version('2.1.1');
+  .version('2.1.2');
 
 program
   .argument('<source>', 'Skill URL (SkillsMP link) or local path')
