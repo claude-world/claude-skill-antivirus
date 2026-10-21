@@ -46,10 +46,11 @@
 npm install -g claude-skill-antivirus
 ```
 
-或使用 npx 直接執行：
+或不安裝、直接以 npx 執行：
 
 ```bash
 npx claude-skill-antivirus <skill-source>
+npx claude-skill-antivirus ./path/to/skill --scan-only
 ```
 
 ## 使用方式
@@ -86,11 +87,17 @@ skill-install ./path/to/skill --lang en
 skill-install ./path/to/skill --lang zh-TW
 ```
 
-### 替代指令
+### 指令名稱
+
+全域安裝後會提供三個可互換的安裝器指令，上面的範例使用任何一個都可以：
 
 ```bash
+claude-skill-antivirus ./path/to/skill --scan-only
+skill-install ./path/to/skill --scan-only
 claude-skill-av ./path/to/skill --scan-only
 ```
+
+`skill-batch-scan` 則是下一節說明的批量掃描工具。
 
 ### 批量掃描所有 SkillsMP 技能
 
@@ -227,7 +234,7 @@ skill-batch-scan --api-key <key> --output ./my-reports --lang zh-TW
 ### 安全的 Skill
 
 ```
-🔧 Claude Skill Installer v2.2.0
+🔧 Claude Skill Installer v2.2.1
 
 📦 已載入 Skill: example-safe-skill
 
@@ -251,7 +258,7 @@ skill-batch-scan --api-key <key> --output ./my-reports --lang zh-TW
 ### 偵測到惡意 Skill
 
 ```
-🔧 Claude Skill Installer v2.2.0
+🔧 Claude Skill Installer v2.2.1
 
 📦 已載入 Skill: suspicious-skill
 
@@ -320,6 +327,8 @@ claude-skill-antivirus/
 │   │   ├── index.js
 │   │   ├── en.js                  # 英文翻譯
 │   │   └── zh-TW.js               # 繁體中文翻譯
+│   ├── lib.js                     # 程式化 API 入口（無 CLI 副作用）
+│   ├── version.js                 # 版本號的唯一來源
 │   ├── scanner/
 │   │   ├── index.js               # 主掃描器（整合 10 個引擎）
 │   │   ├── dangerous-commands.js  # 危險指令偵測
@@ -330,18 +339,28 @@ claude-skill-antivirus/
 │   │   ├── mcp-security.js        # MCP Server 安全檢查
 │   │   ├── ssrf-scanner.js        # SSRF/雲端攻擊偵測
 │   │   ├── dependency-scanner.js  # 依賴安全檢查
-│   │   └── subagent-scanner.js    # Sub-agent 攻擊偵測
+│   │   ├── subagent-scanner.js    # Sub-agent 攻擊偵測
+│   │   └── file-artifacts.js      # 編譯／二進位／壓縮工件偵測
 │   └── utils/
-│       ├── downloader.js          # Skill 下載器
+│       ├── downloader.js          # Skill 載入器（走訪整個目錄）
 │       └── installer.js           # Skill 安裝器
 ├── examples/
 │   ├── safe-skill/                # 安全範例
-│   └── malicious-skill/           # 惡意範例（測試所有引擎）
+│   ├── malicious-skill/           # 惡意範例（測試所有引擎）
+│   └── hidden-code-skill/         # 藏碼範例（payload 在 SKILL.md 之外，#33）
+├── test/
+│   ├── scan.test.js               # 迴歸測試（node --test）
+│   └── bin.test.js                # 確認每個 bin 可解析並會被打包
 ├── package.json
 └── README.md
 ```
 
 ## 更新紀錄
+
+### v2.2.1 (2026-10-21)
+- **修復文件中的 `npx claude-skill-antivirus` 指令**：先前因為沒有與套件同名的 bin，執行時會出現「could not determine executable to run」。現在 `claude-skill-antivirus` 與 `skill-install`、`claude-skill-av` 並列為 bin 別名，並新增測試確認每個宣告的 bin 都能解析、執行 `--version`，且確實打包進 tarball。
+- `--help` 現在會顯示你實際輸入的指令名稱，而非一律印出 `skill-install`。
+- npm 發布改用[信任發布](https://docs.npmjs.com/trusted-publishers)（OIDC），發布帶有 provenance 簽章，CI 中不再存放長期有效的 npm token。
 
 ### v2.2.0 (2026-10-21)
 - **安全修復（[#33](https://github.com/claude-world/claude-skill-antivirus/issues/33)）**：掃描器現在會走訪**整個 skill 目錄**，而非只讀取 `SKILL.md`，因此藏在 `scripts/`、巢狀資料夾或 `__pycache__/*.pyc` 的程式碼不再能騙過掃描而得到 SAFE 100/100。由 [@nedlir](https://github.com/nedlir) 回報；目錄走訪基礎由 [@Yahhi](https://github.com/Yahhi) 貢獻（[#34](https://github.com/claude-world/claude-skill-antivirus/pull/34)）。

@@ -124,7 +124,7 @@ after(async () => { if (root) await rm(root, { recursive: true, force: true }); 
 test('version is a single source of truth (package.json === VERSION)', async () => {
   const pkg = JSON.parse(await readFile(path.join(here, '..', 'package.json'), 'utf-8'));
   assert.equal(pkg.version, VERSION);
-  assert.equal(VERSION, '2.2.0');
+  assert.equal(VERSION, '2.2.1');
 });
 
 test('example: safe-skill classifies LOW (unchanged)', async () => {

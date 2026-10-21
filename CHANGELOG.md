@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.1] - 2026-10-21
+
+### Fixed
+- **`npx claude-skill-antivirus <skill-source>` works again.** The package declared the bins `skill-install`, `claude-skill-av` and `skill-batch-scan`, none matching the package name, so the command both READMEs document failed with `npm error could not determine executable to run`. `claude-skill-antivirus` is now a bin alias for the installer; the other three names are unchanged. Broken since at least 2.1.3, which means 2.2.0's #33 security fix was unreachable through the documented entry point.
+- `--help` reports the alias that was actually invoked instead of always printing `skill-install`.
+
+### Changed
+- npm publishing uses [trusted publishing](https://docs.npmjs.com/trusted-publishers) (OIDC) instead of an `NPM_TOKEN` secret: the workflow requests `id-token: write`, runs on Node 24 (trusted publishing requires npm >= 11.5.1, and Node 22 still bundles npm 10.9.x), and asserts the npm version before publishing. Releases now carry provenance attestations, which npm generates automatically for this path.
+- The publish workflow gained a `workflow_dispatch` trigger, so a publish can be retried without cutting a new release.
+
+### Added
+- `test/bin.test.js`: every bin in `package.json` must resolve, carry a node shebang, print the package version for `--version`, and be present in the published tarball.
+
 ## [2.2.0] - 2026-10-21
 
 ### Security
@@ -100,6 +113,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Interactive installation confirmation prompts
 - Global and project-level installation support
 
+[2.2.1]: https://github.com/claude-world/claude-skill-antivirus/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/claude-world/claude-skill-antivirus/compare/v2.1.3...v2.2.0
 [2.1.3]: https://github.com/claude-world/claude-skill-antivirus/compare/v2.1.1...v2.1.3
 [2.1.1]: https://github.com/claude-world/claude-skill-antivirus/compare/v2.1.0...v2.1.1

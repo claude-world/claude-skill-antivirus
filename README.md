@@ -67,10 +67,11 @@ We scanned all **71,577 skills** on SkillsMP:
 npm install -g claude-skill-antivirus
 ```
 
-Or run directly with npx:
+Or run it without installing:
 
 ```bash
 npx claude-skill-antivirus <skill-source>
+npx claude-skill-antivirus ./path/to/skill --scan-only
 ```
 
 ## Usage
@@ -110,11 +111,18 @@ skill-install ./path/to/skill --lang en
 skill-install ./path/to/skill --lang zh-TW
 ```
 
-### Alternative command
+### Command names
+
+A global install provides three interchangeable names for the installer, so
+every example above works with any of them:
 
 ```bash
+claude-skill-antivirus ./path/to/skill --scan-only
+skill-install ./path/to/skill --scan-only
 claude-skill-av ./path/to/skill --scan-only
 ```
+
+`skill-batch-scan` is the separate batch tool described next.
 
 ### Batch scan all SkillsMP skills
 
@@ -251,7 +259,7 @@ Flags non-text artifacts that cannot be reviewed as source and are a common hidi
 ### Safe Skill
 
 ```
-🔧 Claude Skill Installer v2.2.0
+🔧 Claude Skill Installer v2.2.1
 
 📦 Skill loaded: example-safe-skill
 
@@ -275,7 +283,7 @@ Risk Level: ✅ SAFE
 ### Malicious Skill Detected
 
 ```
-🔧 Claude Skill Installer v2.2.0
+🔧 Claude Skill Installer v2.2.1
 
 📦 Skill loaded: suspicious-skill
 
@@ -368,12 +376,18 @@ claude-skill-antivirus/
 │   ├── malicious-skill/           # Malicious example (tests all engines)
 │   └── hidden-code-skill/         # Hidden-code example (payload outside SKILL.md, #33)
 ├── test/
-│   └── scan.test.js               # Regression suite (node --test)
+│   ├── scan.test.js               # Regression suite (node --test)
+│   └── bin.test.js                # Every declared bin resolves and ships
 ├── package.json
 └── README.md
 ```
 
 ## Latest Updates
+
+### v2.2.1 (2026-10-21)
+- **Fixed the documented `npx claude-skill-antivirus` command**, which failed with "could not determine executable to run" because no bin matched the package name. `claude-skill-antivirus` is now a bin alias alongside `skill-install` and `claude-skill-av`, and a test asserts every declared bin resolves, runs `--version`, and ships in the tarball.
+- `--help` now reports the alias you actually typed instead of always printing `skill-install`.
+- npm publishing moved to [trusted publishing](https://docs.npmjs.com/trusted-publishers) (OIDC), so releases are signed with provenance and no long-lived npm token exists in CI.
 
 ### v2.2.0 (2026-10-21)
 - **Security fix ([#33](https://github.com/claude-world/claude-skill-antivirus/issues/33))**: the scanner now walks the **whole skill directory** instead of reading only `SKILL.md`, so hidden code in `scripts/`, nested folders, or a poisoned `__pycache__/*.pyc` can no longer score a false SAFE 100/100. Reported by [@nedlir](https://github.com/nedlir); directory-walk foundation by [@Yahhi](https://github.com/Yahhi) ([#34](https://github.com/claude-world/claude-skill-antivirus/pull/34)).

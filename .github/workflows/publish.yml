@@ -2,20 +2,45 @@ name: Publish to npm
 on:
   release:
     types: [published]
+  # Lets a maintainer re-run the publish without cutting another release, e.g.
+  # after configuring the trusted publisher on npmjs.com.
+  workflow_dispatch:
+
+# Trusted publishing (OIDC): npm exchanges the short-lived id-token for publish
+# rights, so there is no NPM_TOKEN secret anywhere in this workflow.
+# Setup: https://docs.npmjs.com/trusted-publishers
+permissions:
+  contents: read
+  id-token: write
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: "22"
+          # Trusted publishing needs npm >= 11.5.1. Node 24 (active LTS) bundles
+          # npm 11.19+; Node 22 still bundles npm 10.9.x and cannot publish.
+          node-version: "24"
           registry-url: "https://registry.npmjs.org"
+          package-manager-cache: false
+
+      - name: Verify npm supports trusted publishing
+        run: |
+          npm_version="$(npm --version)"
+          echo "node $(node --version), npm ${npm_version}"
+          if [ "$(printf '%s\n11.5.1\n' "${npm_version}" | sort -V | head -n1)" != "11.5.1" ]; then
+            echo "::error::npm ${npm_version} is older than the 11.5.1 that trusted publishing requires"
+            exit 1
+          fi
+
       - run: npm ci
       - run: npm test
+
+      # Provenance attestations are generated automatically for a public package
+      # published from a public repo over OIDC, so --provenance is not needed.
       - run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { basename } from 'node:path';
 import { Command } from 'commander';
 import chalk from 'chalk';
 import ora from 'ora';
@@ -10,10 +11,14 @@ import { SkillInstaller } from './utils/installer.js';
 import { setLanguage, t, getAvailableLanguages } from './i18n/index.js';
 import { VERSION } from './version.js';
 
+// Several bin aliases point at this file (see package.json), so report the one
+// the user actually typed rather than hard-coding a single name into --help.
+const invokedAs = basename(process.argv[1] ?? '', '.js');
+
 const program = new Command();
 
 program
-  .name('skill-install')
+  .name(invokedAs && invokedAs !== 'index' ? invokedAs : 'claude-skill-antivirus')
   .description('A secure Claude Skills installer with malicious operation detection')
   .version(VERSION);
 
