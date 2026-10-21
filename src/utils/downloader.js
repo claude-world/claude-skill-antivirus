@@ -1,8 +1,13 @@
 import fetch from 'node-fetch';
-import { readFile, stat } from 'fs/promises';
+import { readFile, stat, readdir } from 'fs/promises';
 import { parse as parseYaml } from 'yaml';
 import path from 'path';
 import AdmZip from 'adm-zip';
+
+// Cap per-file read so a huge or binary artifact can't blow up memory; the
+// scanning engines only need the readable strings inside a file.
+const MAX_FILE_BYTES = 2 * 1024 * 1024;
+const SKIP_DIRS = new Set(['.git', 'node_modules', '.venv', 'venv']);
 
 /**
  * SkillDownloader - Fetches and parses skill content from various sources
@@ -41,10 +46,10 @@ export class SkillDownloader {
     const stats = await stat(filePath);
 
     if (stats.isDirectory()) {
-      // Look for SKILL.md in directory
-      const skillMdPath = path.join(filePath, 'SKILL.md');
-      const content = await readFile(skillMdPath, 'utf-8');
-      return this.parseSkillMd(content, filePath);
+      // Walk the WHOLE directory, not just SKILL.md. Reading only the manifest
+      // let a skill hide arbitrary code in scripts/ (or a poisoned .pyc) and
+      // still score 100/100 SAFE — the engines never saw the executable files.
+      return this.parseLocalDirectory(filePath);
     }
 
     if (filePath.endsWith('.zip')) {
@@ -250,6 +255,60 @@ ${description}
     return {
       name: metadata.name || this.extractNameFromUrl(source),
       source: source,
+      files: files,
+      metadata: metadata,
+      rawContent: skillMdContent || ''
+    };
+  }
+
+  async parseLocalDirectory(dirPath) {
+    // Recursively collect every file into the same SkillContent.files shape the
+    // zip path produces, so all 9 engines scan the whole skill, not one file.
+    const files = [];
+    let skillMdContent = null;
+
+    const walk = async (dir) => {
+      let entries;
+      try {
+        entries = await readdir(dir, { withFileTypes: true });
+      } catch {
+        return;
+      }
+      for (const entry of entries) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          if (SKIP_DIRS.has(entry.name)) continue;
+          await walk(full);
+        } else if (entry.isFile()) {
+          // utf-8 with replacement keeps readable strings out of binaries too
+          // (a .pyc still exposes its literal names/paths to the string engines).
+          let content;
+          try {
+            const buf = await readFile(full);
+            content = buf.slice(0, MAX_FILE_BYTES).toString('utf-8');
+          } catch {
+            continue;
+          }
+          const rel = path.relative(dirPath, full);
+          files.push({ name: entry.name, content, path: rel });
+          if (entry.name === 'SKILL.md' && skillMdContent === null) {
+            skillMdContent = content;
+          }
+        }
+      }
+    };
+    await walk(dirPath);
+
+    if (!skillMdContent && files.length > 0) {
+      const mdFile = files.find(f => f.name.endsWith('.md'));
+      if (mdFile) skillMdContent = mdFile.content;
+    }
+
+    const metadata = skillMdContent ? this.parseSkillMetadata(skillMdContent) : {};
+
+    return {
+      name: metadata.name || this.extractNameFromUrl(dirPath),
+      source: dirPath,
       files: files,
       metadata: metadata,
       rawContent: skillMdContent || ''
