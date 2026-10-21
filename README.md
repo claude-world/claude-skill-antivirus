@@ -3,15 +3,15 @@
 [![npm version](https://img.shields.io/npm/v/claude-skill-antivirus.svg)](https://www.npmjs.com/package/claude-skill-antivirus)
 [![CI](https://github.com/claude-world/claude-skill-antivirus/actions/workflows/ci.yml/badge.svg)](https://github.com/claude-world/claude-skill-antivirus/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org/)
-[![Claude Code](https://img.shields.io/badge/Claude_Code-Opus_4.6-blueviolet.svg)](https://docs.anthropic.com/en/docs/claude-code)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D22.0.0-brightgreen.svg)](https://nodejs.org/)
+[![Claude Code](https://img.shields.io/badge/Claude_Code-Opus_5.5-blueviolet.svg)](https://docs.anthropic.com/en/docs/claude-code)
 
 <!-- TODO: Replace with actual GIF -->
 <img src="assets/demo.gif" alt="Claude Skill Antivirus scanning a CLAUDE.md file for prompt injection" title="Demo shows: trigger scan → detect patterns → show results" />
 
-A security scanner and safe installer for Claude Code Skills. Detects malicious patterns, data exfiltration attempts, and dangerous operations before installing third-party skills.
+A security scanner and safe installer for Claude Code Skills. It scans the **whole skill directory** — not just `SKILL.md` — to detect malicious patterns, hidden code, data exfiltration attempts, and dangerous operations before installing third-party skills.
 
-Compatible with Claude Code using Opus 4.6, Sonnet 4.6, and Haiku 4.5 models.
+Compatible with Claude Code using Opus 5.5, Sonnet 5.5, Haiku 5.5, and Fable 5.1 models.
 
 [繁體中文說明](./README.zh-TW.md) | [SkillsMP Scan Report](./SCAN-REPORT.md)
 
@@ -28,11 +28,16 @@ We scanned all **71,577 skills** on SkillsMP:
 
 **~3% of skills may have potential risks.** See [full report](./SCAN-REPORT.md) for details.
 
+> **Coverage note**: this catalog scan (v2.0.0, January 2026) used the SkillsMP API, which exposes only each skill's `SKILL.md`, so "SAFE" there means no findings in the manifest; scripts were not analyzed (see [#33](https://github.com/claude-world/claude-skill-antivirus/issues/33)). Scan a skill's directory or repository for a complete verdict.
+
 > **Note**: Some findings may be false positives (e.g., legitimate 1Password/Bitwarden integrations). Manual review is recommended for flagged skills.
 
 ## Features
 
-- **9 Security Scanning Engines**:
+- **Whole-directory scanning**: every file in a skill is analyzed — `scripts/`, nested
+  folders, and even files inside `node_modules/`, `venv/`, or `__pycache__/`. Hidden code
+  can no longer evade the scan by living outside `SKILL.md` (see [#33](https://github.com/claude-world/claude-skill-antivirus/issues/33)).
+- **10 Security Scanning Engines**:
   - Dangerous Commands Scanner - Detects destructive shell commands
   - Data Exfiltration Scanner - Identifies data theft patterns
   - External Connections Scanner - Analyzes URLs and network calls
@@ -42,11 +47,19 @@ We scanned all **71,577 skills** on SkillsMP:
   - SSRF Scanner - Identifies server-side request forgery patterns
   - Dependency Scanner - Detects malicious packages and typosquatting
   - Sub-agent Scanner - Detects Task tool abuse and agent chain attacks
+  - File Artifact Scanner - Flags compiled/binary/archive artifacts (`.pyc`, `.so`, `.exe`, archives)
 
+- **Tamper-evident coverage**: symlinks are never followed out of the skill, and skipped
+  directories, truncated files, and scan-limit hits are reported as findings so an unusual
+  input can never silently pass as SAFE.
 - **Risk Assessment**: Critical, High, Medium, Low, and Info levels
 - **Multilingual Support**: English and Traditional Chinese (繁體中文)
 - **Install or Scan-Only Mode**: Review skills before installation
 - **Interactive Prompts**: Guided decision-making for risky installations
+
+## Requirements
+
+- Node.js >= 22
 
 ## Installation
 
@@ -82,7 +95,10 @@ skill-install @skillsmp/example-skill -g
 
 ```bash
 skill-install ./path/to/skill --scan-only
+skill-install https://github.com/user/repo/tree/main/skills/my-skill --scan-only
 ```
+
+Every file in the skill is scanned. GitHub URLs (repository, `tree/` directory, or a `SKILL.md` blob) are walked through the GitHub API; set `GITHUB_TOKEN` to avoid unauthenticated rate limits. A skill that could not be scanned completely is reported, and is never installed.
 
 ### Change language
 
@@ -219,12 +235,23 @@ Detects Task tool and sub-agent abuse:
 | DoS Attacks | Loop Task calls, infinite recursion |
 | Data Theft | Read + WebFetch combinations, accessing sensitive data |
 
+### 10. File Artifact Scanner
+
+Flags non-text artifacts that cannot be reviewed as source and are a common hiding place for payloads:
+
+| Category | Detection Items |
+|----------|-----------------|
+| Compiled / native | `.pyc`, `.pyo`, `.so`, `.node`, `.dll`, `.dylib`, `.exe`, `.wasm`, `.class` |
+| Archives | `.zip`, `.tar`, `.gz`, `.7z`, `.jar`, `.whl` bundled inside a skill |
+| Binary content | Non-text files detected by content, with only their readable strings scanned |
+| Coverage anomalies | Unexpected directories, unfollowed symlinks, truncated files, scan-limit hits |
+
 ## Output Examples
 
 ### Safe Skill
 
 ```
-🔧 Claude Skill Installer v2.0.0
+🔧 Claude Skill Installer v2.2.0
 
 📦 Skill loaded: example-safe-skill
 
@@ -248,7 +275,7 @@ Risk Level: ✅ SAFE
 ### Malicious Skill Detected
 
 ```
-🔧 Claude Skill Installer v2.0.0
+🔧 Claude Skill Installer v2.2.0
 
 📦 Skill loaded: suspicious-skill
 
@@ -294,10 +321,12 @@ You can also use the scanner programmatically:
 import { SecurityScanner, loadSkill } from 'claude-skill-antivirus';
 
 const scanner = new SecurityScanner();
-const skill = await loadSkill('./path/to/skill');
-const findings = await scanner.scan(skill);
+const skill = await loadSkill('./path/to/skill'); // local dir, SKILL.md, zip, or GitHub URL
+const result = await scanner.scan(skill);
 
-console.log(findings);
+console.log(result.riskLevel); // 'SAFE' | 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
+console.log(result.score);     // 0-100
+console.log(result.findings);
 // {
 //   critical: [...],
 //   high: [...],
@@ -317,8 +346,10 @@ claude-skill-antivirus/
 │   │   ├── index.js
 │   │   ├── en.js                  # English translations
 │   │   └── zh-TW.js               # Traditional Chinese translations
+│   ├── lib.js                     # Programmatic API entry (no CLI side effects)
+│   ├── version.js                 # Single source of truth for the version
 │   ├── scanner/
-│   │   ├── index.js               # Main scanner (integrates 9 engines)
+│   │   ├── index.js               # Main scanner (integrates 10 engines)
 │   │   ├── dangerous-commands.js  # Dangerous command detection
 │   │   ├── permissions.js         # Permission checking
 │   │   ├── external-connections.js # External connection analysis
@@ -327,18 +358,32 @@ claude-skill-antivirus/
 │   │   ├── mcp-security.js        # MCP Server security check
 │   │   ├── ssrf-scanner.js        # SSRF/cloud attack detection
 │   │   ├── dependency-scanner.js  # Dependency security check
-│   │   └── subagent-scanner.js    # Sub-agent attack detection
+│   │   ├── subagent-scanner.js    # Sub-agent attack detection
+│   │   └── file-artifacts.js      # Compiled/binary/archive artifact detection
 │   └── utils/
-│       ├── downloader.js          # Skill downloader
+│       ├── downloader.js          # Skill loader (walks the whole directory)
 │       └── installer.js           # Skill installer
 ├── examples/
 │   ├── safe-skill/                # Safe example
-│   └── malicious-skill/           # Malicious example (tests all engines)
+│   ├── malicious-skill/           # Malicious example (tests all engines)
+│   └── hidden-code-skill/         # Hidden-code example (payload outside SKILL.md, #33)
+├── test/
+│   └── scan.test.js               # Regression suite (node --test)
 ├── package.json
 └── README.md
 ```
 
 ## Latest Updates
+
+### v2.2.0 (2026-10-21)
+- **Security fix ([#33](https://github.com/claude-world/claude-skill-antivirus/issues/33))**: the scanner now walks the **whole skill directory** instead of reading only `SKILL.md`, so hidden code in `scripts/`, nested folders, or a poisoned `__pycache__/*.pyc` can no longer score a false SAFE 100/100. Reported by [@nedlir](https://github.com/nedlir); directory-walk foundation by [@Yahhi](https://github.com/Yahhi) ([#34](https://github.com/claude-world/claude-skill-antivirus/pull/34)).
+- New **File Artifact Scanner** (10th engine) flags compiled/binary/archive files by magic bytes, and a PEP 552 unchecked-hash `.pyc` is CRITICAL; skipped dirs, unfollowed symlinks, truncated files, and scan-limit hits are now reported as findings.
+- GitHub repository, `tree/` and `blob/.../SKILL.md` URLs walk the whole skill via the GitHub API; `.zip` inputs are hardened (zip-slip, encrypted/oversized entries, size caps).
+- Installer hardening: refuses zip-slip paths and incompletely scanned skills, and writes binaries byte-for-byte.
+- Fixed ReDoS across the engines (a crafted long line could hang the scanner) and a crash on SKILL.md files containing a `| name |` table.
+- Pattern precision tuned for real code now that scripts are scanned. Skills that ship scripts will show more findings than in 2.1.x; review them.
+- Verified compatibility with Claude Code Opus 5.5, Sonnet 5.5, Haiku 5.5, and Fable 5.1.
+- Node.js >= 22; upgraded dependencies (commander 15, inquirer 14, chalk 6, ora 9, yaml 2.9, adm-zip 0.6); removed `node-fetch` in favor of built-in `fetch`.
 
 ### v2.1.0 (2026-03-13)
 - Verified compatibility with Claude Code Opus 4.6

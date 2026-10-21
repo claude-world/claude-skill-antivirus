@@ -7,13 +7,14 @@ import { MCPSecurityScanner } from './mcp-security.js';
 import { SSRFScanner } from './ssrf-scanner.js';
 import { DependencyScanner } from './dependency-scanner.js';
 import { SubAgentScanner } from './subagent-scanner.js';
+import { FileArtifactScanner } from './file-artifacts.js';
 import { t } from '../i18n/index.js';
 
 /**
  * SecurityScanner - Main scanner that orchestrates all security checks
  * Integrated antivirus scanning engine for detecting malicious behavior in Skills
  *
- * 9 Scanning Engines:
+ * 10 Scanning Engines:
  * 1. DangerousCommandScanner - Dangerous command detection
  * 2. PermissionScanner - Permission scope analysis
  * 3. ExternalConnectionScanner - External connection analysis
@@ -23,6 +24,7 @@ import { t } from '../i18n/index.js';
  * 7. SSRFScanner - SSRF/Cloud attack detection
  * 8. DependencyScanner - Dependency security analysis
  * 9. SubAgentScanner - Sub-agent attack detection
+ * 10. FileArtifactScanner - Compiled/binary/archive artifact detection
  */
 export class SecurityScanner {
   constructor(verbose = false) {
@@ -36,7 +38,8 @@ export class SecurityScanner {
       new MCPSecurityScanner(),            // MCP Server security checks
       new SSRFScanner(),                   // SSRF/Cloud attack detection
       new DependencyScanner(),             // Dependency security analysis
-      new SubAgentScanner()                // Sub-agent attack detection
+      new SubAgentScanner(),               // Sub-agent attack detection
+      new FileArtifactScanner()            // Compiled/binary/archive artifact detection
     ];
   }
 
@@ -58,6 +61,21 @@ export class SecurityScanner {
     for (const scanner of this.scanners) {
       const scannerFindings = await scanner.scan(skillContent);
       this.mergeFindings(findings, scannerFindings);
+    }
+
+    // Merge structural findings the loader produced while reading the skill
+    // (skipped/anomalous dirs, symlinks, truncation, scan-limit hits). These
+    // ensure an unusual input can never silently pass as SAFE.
+    if (Array.isArray(skillContent.loaderFindings)) {
+      for (const f of skillContent.loaderFindings) {
+        const level = findings[f.risk] ? f.risk : 'low';
+        findings[level].push({
+          title: f.title,
+          description: f.description,
+          location: f.location,
+          scanner: f.scanner || 'Loader',
+        });
+      }
     }
 
     // Calculate risk level and score

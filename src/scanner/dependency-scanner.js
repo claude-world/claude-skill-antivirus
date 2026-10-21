@@ -82,7 +82,7 @@ export class DependencyScanner {
     // Suspicious installation patterns
     this.suspiciousInstallPatterns = [
       {
-        pattern: /npm\s+install\s+[^-\s]*@\d+\.\d+\.\d+-[a-z]+/gi,
+        pattern: /npm\s+install\s+[^-\s]{0,300}@\d+\.\d+\.\d+-[a-z]+/gi,
         risk: 'medium',
         title: 'Installing prerelease version',
         description: 'Installing alpha/beta/rc version, may be unstable or contain malicious code'
@@ -154,35 +154,35 @@ export class DependencyScanner {
     // Package manager command detection
     this.packageManagerPatterns = [
       {
-        pattern: /npm\s+i(?:nstall)?\s+([^\s&|;]+)/gi,
+        pattern: /npm\s+i(?:nstall)?\s+([^\s&|;]{1,300})/gi,
         type: 'npm'
       },
       {
-        pattern: /yarn\s+add\s+([^\s&|;]+)/gi,
+        pattern: /yarn\s+add\s+([^\s&|;]{1,300})/gi,
         type: 'yarn'
       },
       {
-        pattern: /pnpm\s+(?:add|install)\s+([^\s&|;]+)/gi,
+        pattern: /pnpm\s+(?:add|install)\s+([^\s&|;]{1,300})/gi,
         type: 'pnpm'
       },
       {
-        pattern: /pip\s+install\s+([^\s&|;]+)/gi,
+        pattern: /pip\s+install\s+([^\s&|;]{1,300})/gi,
         type: 'pip'
       },
       {
-        pattern: /gem\s+install\s+([^\s&|;]+)/gi,
+        pattern: /gem\s+install\s+([^\s&|;]{1,300})/gi,
         type: 'gem'
       },
       {
-        pattern: /cargo\s+install\s+([^\s&|;]+)/gi,
+        pattern: /cargo\s+install\s+([^\s&|;]{1,300})/gi,
         type: 'cargo'
       },
       {
-        pattern: /go\s+get\s+([^\s&|;]+)/gi,
+        pattern: /go\s+get\s+([^\s&|;]{1,300})/gi,
         type: 'go'
       },
       {
-        pattern: /composer\s+require\s+([^\s&|;]+)/gi,
+        pattern: /composer\s+require\s+([^\s&|;]{1,300})/gi,
         type: 'composer'
       }
     ];
@@ -190,31 +190,31 @@ export class DependencyScanner {
     // postinstall script risks
     this.postinstallRisks = [
       {
-        pattern: /"(pre|post)?install"\s*:\s*"[^"]*curl/gi,
+        pattern: /"(pre|post)?install"\s*:\s*"[^"]{0,300}curl/gi,
         risk: 'critical',
         title: 'Install script downloads',
         description: 'package.json install script contains download operation'
       },
       {
-        pattern: /"(pre|post)?install"\s*:\s*"[^"]*wget/gi,
+        pattern: /"(pre|post)?install"\s*:\s*"[^"]{0,300}wget/gi,
         risk: 'critical',
         title: 'Install script downloads',
         description: 'package.json install script contains wget'
       },
       {
-        pattern: /"(pre|post)?install"\s*:\s*"[^"]*eval/gi,
+        pattern: /"(pre|post)?install"\s*:\s*"[^"]{0,300}eval/gi,
         risk: 'critical',
         title: 'Install script eval',
         description: 'package.json install script uses eval'
       },
       {
-        pattern: /"(pre|post)?install"\s*:\s*"[^"]*node\s+-e/gi,
+        pattern: /"(pre|post)?install"\s*:\s*"[^"]{0,300}node\s+-e/gi,
         risk: 'high',
         title: 'Install script executes Node',
         description: 'Install script directly executes Node code'
       },
       {
-        pattern: /"(pre|post)?install"\s*:\s*"[^"]*python/gi,
+        pattern: /"(pre|post)?install"\s*:\s*"[^"]{0,300}python/gi,
         risk: 'medium',
         title: 'Install script executes Python',
         description: 'Install script executes Python'
@@ -254,7 +254,7 @@ export class DependencyScanner {
 
     // Check pip malicious packages
     for (const pkg of this.maliciousPipPackages) {
-      const pattern = new RegExp(`pip\\s+install\\s+[^\\n]*\\b${pkg}\\b`, 'gi');
+      const pattern = new RegExp(`pip\\s+install\\s+[^\\n]{0,300}\\b${pkg}\\b`, 'gi');
       if (pattern.test(content)) {
         findings.critical.push({
           title: '[pip] Known malicious package',
@@ -307,9 +307,9 @@ export class DependencyScanner {
   checkMaliciousPackages(content, findings) {
     for (const pkg of this.knownMaliciousPackages) {
       // Check npm install commands
-      const npmPattern = new RegExp(`npm\\s+i(?:nstall)?\\s+[^\\n]*\\b${pkg}\\b`, 'gi');
-      const yarnPattern = new RegExp(`yarn\\s+add\\s+[^\\n]*\\b${pkg}\\b`, 'gi');
-      const pnpmPattern = new RegExp(`pnpm\\s+(?:add|install)\\s+[^\\n]*\\b${pkg}\\b`, 'gi');
+      const npmPattern = new RegExp(`npm\\s+i(?:nstall)?\\s+[^\\n]{0,300}\\b${pkg}\\b`, 'gi');
+      const yarnPattern = new RegExp(`yarn\\s+add\\s+[^\\n]{0,300}\\b${pkg}\\b`, 'gi');
+      const pnpmPattern = new RegExp(`pnpm\\s+(?:add|install)\\s+[^\\n]{0,300}\\b${pkg}\\b`, 'gi');
 
       if (npmPattern.test(content) || yarnPattern.test(content) || pnpmPattern.test(content)) {
         findings.critical.push({

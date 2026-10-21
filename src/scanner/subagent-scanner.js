@@ -7,25 +7,25 @@ export class SubAgentScanner {
     // Dangerous agent privilege escalation attempts
     this.privilegeEscalationPatterns = [
       {
-        pattern: /Task\s*\([^)]*subagent_type\s*[=:]\s*['"]?Bash['"]?/gi,
+        pattern: /Task\s*\([^)]{0,300}subagent_type\s*[=:]\s*['"]?Bash['"]?/gi,
         risk: 'high',
         title: 'Task spawning Bash Agent',
         description: 'Sub-agent attempts to use Bash type, can execute arbitrary commands'
       },
       {
-        pattern: /Task\s*\([^)]*model\s*[=:]\s*['"]?opus['"]?/gi,
+        pattern: /Task\s*\([^)]{0,300}model\s*[=:]\s*['"]?opus['"]?/gi,
         risk: 'medium',
         title: 'Task using Opus model',
         description: 'Sub-agent attempts to use the most powerful model'
       },
       {
-        pattern: /Task\s*\([^)]*allow[_-]?all/gi,
+        pattern: /Task\s*\([^)]{0,300}allow[_-]?all/gi,
         risk: 'critical',
         title: 'Task requesting all permissions',
         description: 'Sub-agent attempts to obtain all tool permissions'
       },
       {
-        pattern: /Task\s*\([^)]*Bash\s*\(\s*\*\s*\)/gi,
+        pattern: /Task\s*\([^)]{0,300}Bash\s*\(\s*\*\s*\)/gi,
         risk: 'critical',
         title: 'Task contains Bash(*)',
         description: 'Sub-agent attempts to obtain unrestricted Shell access'
@@ -35,31 +35,31 @@ export class SubAgentScanner {
     // Dangerous agent prompt content
     this.dangerousPromptPatterns = [
       {
-        pattern: /Task\s*\([^)]*prompt\s*[=:][^)]*ignore\s+(previous|all|safety)/gi,
+        pattern: /Task\s*\([^)]{0,300}prompt\s*[=:][^)]{0,300}ignore\s+(previous|all|safety)/gi,
         risk: 'critical',
         title: 'Task Prompt Injection',
         description: 'Sub-agent prompt contains prompt injection attempt'
       },
       {
-        pattern: /Task\s*\([^)]*prompt\s*[=:][^)]*you\s+are\s+(now\s+)?in\s+['"]?(god|admin|developer|root)/gi,
+        pattern: /Task\s*\([^)]{0,300}prompt\s*[=:][^)]{0,300}you\s+are\s+(now\s+)?in\s+['"]?(god|admin|developer|root)/gi,
         risk: 'critical',
         title: 'Task role elevation attempt',
         description: 'Sub-agent prompt attempts role elevation'
       },
       {
-        pattern: /Task\s*\([^)]*prompt\s*[=:][^)]*execute.*without.*verification/gi,
+        pattern: /Task\s*\([^)]{0,300}prompt\s*[=:][^)]{0,300}execute.{0,300}without.{0,300}verification/gi,
         risk: 'critical',
         title: 'Task bypassing verification',
         description: 'Sub-agent prompt attempts to bypass security verification'
       },
       {
-        pattern: /Task\s*\([^)]*prompt\s*[=:][^)]*curl\s+.*\|\s*bash/gi,
+        pattern: /Task\s*\([^)]{0,300}prompt\s*[=:][^)]{0,300}curl\s+.{0,300}\|\s*bash/gi,
         risk: 'critical',
         title: 'Task contains dangerous command',
         description: 'Sub-agent prompt contains curl | bash and other dangerous commands'
       },
       {
-        pattern: /Task\s*\([^)]*prompt\s*[=:][^)]*rm\s+-rf/gi,
+        pattern: /Task\s*\([^)]{0,300}prompt\s*[=:][^)]{0,300}rm\s+-rf/gi,
         risk: 'critical',
         title: 'Task contains delete command',
         description: 'Sub-agent prompt contains recursive delete command'
@@ -69,13 +69,13 @@ export class SubAgentScanner {
     // Agent chain attack patterns
     this.agentChainPatterns = [
       {
-        pattern: /Task\s*\([^)]*prompt\s*[=:][^)]*Task\s*\(/gi,
+        pattern: /Task\s*\([^)]{0,300}prompt\s*[=:][^)]{0,300}Task\s*\(/gi,
         risk: 'high',
         title: 'Agent nested calls',
         description: 'Sub-agent attempts to spawn more sub-agents, may form attack chain'
       },
       {
-        pattern: /(Task\s*\()[^)]*\){2,}/gi,
+        pattern: /(Task\s*\()[^)]{0,300}\){2,}/gi,
         risk: 'medium',
         title: 'Multiple Task calls',
         description: 'Detected multiple Task calls, check for coordinated attack'
@@ -85,19 +85,19 @@ export class SubAgentScanner {
     // Loop/DoS attack patterns
     this.dosPatterns = [
       {
-        pattern: /while\s*\([^)]*\)\s*\{[^}]*Task\s*\(/gi,
+        pattern: /while\s*\([^)]{0,300}\)\s*\{[^}]{0,300}Task\s*\(/gi,
         risk: 'critical',
         title: 'Task loop call',
         description: 'Task called in while loop, may cause DoS'
       },
       {
-        pattern: /for\s*\([^)]*\)\s*\{[^}]*Task\s*\(/gi,
+        pattern: /for\s*\([^)]{0,300}\)\s*\{[^}]{0,300}Task\s*\(/gi,
         risk: 'high',
         title: 'Task for loop',
         description: 'Task called in for loop, may consume large resources'
       },
       {
-        pattern: /setInterval\s*\([^)]*Task/gi,
+        pattern: /setInterval\s*\([^)]{0,300}Task/gi,
         risk: 'critical',
         title: 'Task scheduled repeat',
         description: 'Task set to execute repeatedly at intervals'
@@ -113,19 +113,19 @@ export class SubAgentScanner {
     // Data theft agent patterns
     this.dataTheftAgentPatterns = [
       {
-        pattern: /Task\s*\([^)]*(?:Read|Glob|Grep)[^)]*(?:WebFetch|curl|http)/gi,
+        pattern: /Task\s*\([^)]{0,300}(?:Read|Glob|Grep)[^)]{0,300}(?:WebFetch|curl|http)/gi,
         risk: 'critical',
         title: 'Task Read + Network combination',
         description: 'Sub-agent contains both read and network tools, may be used for data exfiltration'
       },
       {
-        pattern: /Task\s*\([^)]*prompt\s*[=:][^)]*(\.env|\.ssh|\.aws|credential|secret|password)/gi,
+        pattern: /Task\s*\([^)]{0,300}prompt\s*[=:][^)]{0,300}(\.env|\.ssh|\.aws|credential|secret|password)/gi,
         risk: 'critical',
         title: 'Task accessing sensitive data',
         description: 'Sub-agent prompt attempts to access sensitive files'
       },
       {
-        pattern: /Task\s*\([^)]*Explore[^)]*(?:ssh|aws|credential|secret|password|\.env)/gi,
+        pattern: /Task\s*\([^)]{0,300}Explore[^)]{0,300}(?:ssh|aws|credential|secret|password|\.env)/gi,
         risk: 'high',
         title: 'Explore sensitive areas',
         description: 'Explore agent attempts to explore sensitive directories'
@@ -135,13 +135,13 @@ export class SubAgentScanner {
     // Background execution risks
     this.backgroundPatterns = [
       {
-        pattern: /Task\s*\([^)]*run[_-]?in[_-]?background\s*[=:]\s*true/gi,
+        pattern: /Task\s*\([^)]{0,300}run[_-]?in[_-]?background\s*[=:]\s*true/gi,
         risk: 'medium',
         title: 'Task background execution',
         description: 'Sub-agent requests background execution, needs monitoring'
       },
       {
-        pattern: /Task\s*\([^)]*background[^)]*(?:curl|wget|nc|bash)/gi,
+        pattern: /Task\s*\([^)]{0,300}background[^)]{0,300}(?:curl|wget|nc|bash)/gi,
         risk: 'high',
         title: 'Background Task with Network/Shell',
         description: 'Background Task contains network or Shell access'

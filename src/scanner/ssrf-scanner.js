@@ -1,3 +1,13 @@
+import { checkCompoundPerFile } from './compound.js';
+
+// file:// is an SSRF/local-read attack when handed to a fetcher on the same line,
+// or when it targets sensitive system files; a bare mention is reported lower.
+const FILE_URL_ATTACK_SOURCE =
+  String.raw`(?:fetch|curl|wget|urlopen|requests\.\w+|axios|http\.get|WebFetch|url\s*[:=])[^\n]{0,120}file:\/\/` +
+  String.raw`|file:\/\/\/?(?:etc\/(?:passwd|shadow|sudoers|hosts)|proc\/|root\/|home\/[^\s/'"]{1,300}\/\.(?:ssh|aws|gnupg)|~\/\.(?:ssh|aws|gnupg))`;
+const FILE_URL_ATTACK = new RegExp(FILE_URL_ATTACK_SOURCE, 'gi');
+const FILE_URL_ATTACK_TEST = new RegExp(FILE_URL_ATTACK_SOURCE, 'i');
+
 /**
  * SSRFScanner - Detects Server-Side Request Forgery and cloud attack patterns
  * Identifies SSRF vulnerabilities and cloud infrastructure exploitation attempts
@@ -145,7 +155,7 @@ export class SSRFScanner {
         description: 'Using URL encoding to attempt filter bypass'
       },
       {
-        pattern: /@|#.*@/g,
+        pattern: /@|#.{0,300}@/g,
         risk: 'medium',
         title: 'URL Authority confusion',
         description: 'Using @ symbol may indicate URL obfuscation attack'
@@ -157,10 +167,20 @@ export class SSRFScanner {
         description: 'Using UNC path may access network shares'
       },
       {
-        pattern: /file:\/\//gi,
+        // file:// fed to a fetcher, or aimed at sensitive system files
+        pattern: FILE_URL_ATTACK,
         risk: 'critical',
         title: 'File Protocol',
         description: 'Using file:// protocol to read local files'
+      },
+      {
+        // A plain file:// reference (e.g. an MCP resource URI, a LibreOffice
+        // profile path) is common in legitimate code and docs.
+        pattern: /file:\/\//gi,
+        unless: FILE_URL_ATTACK_TEST,
+        risk: 'medium',
+        title: 'file:// URL reference',
+        description: 'References a file:// URL; verify it is not used to read local files'
       },
       {
         pattern: /gopher:\/\//gi,
@@ -278,7 +298,9 @@ export class SSRFScanner {
     ];
 
     for (const group of allPatternGroups) {
-      for (const { pattern, risk, title, description } of group.patterns) {
+      for (const { pattern, risk, title, description, unless } of group.patterns) {
+        // Skip an entry superseded by a more specific one (avoids double counting)
+        if (unless && unless.test(content)) continue;
         // Reset regex lastIndex
         pattern.lastIndex = 0;
         const matches = content.match(pattern);
@@ -294,8 +316,8 @@ export class SSRFScanner {
       }
     }
 
-    // Compound behavior analysis
-    this.analyzeCompoundBehaviors(content, findings);
+    // Compound behavior analysis (judged per file; cross-file-only matches downgraded)
+    checkCompoundPerFile(skillContent, (c, f) => this.analyzeCompoundBehaviors(c, f), findings);
 
     return findings;
   }
@@ -311,8 +333,10 @@ export class SSRFScanner {
   analyzeCompoundBehaviors(content, findings) {
     // Check for network tools + internal IP combination
     const hasNetworkTools = /curl|wget|fetch|http\.get|requests\.|axios|WebFetch/gi.test(content);
-    const hasInternalIP = /10\.\d|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|127\./g.test(content);
-    const hasMetadata = /169\.254\.169\.254|metadata/gi.test(content);
+    // Full dotted quads only: `10\.\d` alone matched version strings like "3.10.4".
+    const hasInternalIP = /\b(?:10\.\d{1,3}|172\.(?:1[6-9]|2\d|3[01])|192\.168|127\.\d{1,3})\.\d{1,3}\.\d{1,3}\b/.test(content);
+    // Cloud metadata endpoints, not the everyday word "metadata".
+    const hasMetadata = /169\.254\.169\.254|169\.254\.170\.2|metadata\.google\.internal|metadata\.azure\.com|\/latest\/meta-data|computeMetadata\/v1/i.test(content);
 
     if (hasNetworkTools && hasMetadata) {
       findings.critical.push({
@@ -331,7 +355,7 @@ export class SSRFScanner {
     }
 
     // Check for dynamic URL construction
-    const hasDynamicUrl = /\$\{.*\}.*https?:|https?:.*\$\{|url\s*=.*\+|fetch\s*\([^)]*\+/gi.test(content);
+    const hasDynamicUrl = /\$\{.{0,300}\}.{0,300}https?:|https?:.{0,300}\$\{|url\s*=.{0,300}\+|fetch\s*\([^)]{0,300}\+/gi.test(content);
     if (hasDynamicUrl) {
       findings.medium.push({
         title: '[Behavior Analysis] Dynamic URL construction',

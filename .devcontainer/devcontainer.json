@@ -1,6 +1,6 @@
 {
   "name": "Node.js Dev",
-  "image": "mcr.microsoft.com/devcontainers/javascript-node:20",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:22",
   "postCreateCommand": "npm ci",
   "customizations": {
     "vscode": {
