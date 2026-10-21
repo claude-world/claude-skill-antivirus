@@ -42,7 +42,7 @@ export class PatternScanner {
         description: 'Attempts to activate DAN jailbreak mode'
       },
       {
-        pattern: /\bDAN\b(?=.*\b(ignore|bypass|override|unlimited|unrestricted)\b)/gi,
+        pattern: /\bDAN\b(?=.{0,300}\b(ignore|bypass|override|unlimited|unrestricted)\b)/gi,
         risk: 'high',
         title: 'DAN with bypass keywords',
         description: 'DAN mentioned with security bypass keywords'
@@ -122,7 +122,7 @@ export class PatternScanner {
         description: 'Uses exec() which can execute arbitrary code'
       },
       {
-        pattern: /Function\s*\(\s*['"][^'"]+['"]\s*\)/gi,
+        pattern: /Function\s*\(\s*['"][^'"]{1,300}['"]\s*\)/gi,
         risk: 'high',
         title: 'Dynamic function construction',
         description: 'Creates functions from strings - potential code injection'
@@ -140,7 +140,7 @@ export class PatternScanner {
         description: 'Direct innerHTML manipulation - potential XSS vector'
       },
       {
-        pattern: /\$\{.*\}/g,
+        pattern: /\$\{.{0,300}\}/g,
         risk: 'low',
         title: 'Template literals',
         description: 'Uses template literals - verify no injection points',

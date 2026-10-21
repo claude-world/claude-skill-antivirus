@@ -18,7 +18,7 @@ Thanks for contributing to Claude Skill Antivirus.
 ## Development Setup
 
 1. Fork and clone the repository.
-2. Install Node.js 18 or later.
+2. Install Node.js 22 or later.
 3. Run `npm install`.
 4. Run `npm test`.
 5. For manual checks, run `node src/index.js ./examples/safe-skill --scan-only`.

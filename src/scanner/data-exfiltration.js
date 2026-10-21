@@ -1,3 +1,5 @@
+import { checkCompoundPerFile } from './compound.js';
+
 /**
  * DataExfiltrationScanner - Detects data theft and exfiltration patterns
  * Specifically detects malicious behavior of reading local data and sending it externally
@@ -8,37 +10,37 @@ export class DataExfiltrationScanner {
     this.dataCollectionPatterns = [
       // Reading sensitive files
       {
-        pattern: /cat\s+[^\n]*\.(env|pem|key|crt|p12|pfx|jks|keystore|credentials|secret)/gi,
+        pattern: /cat\s+[^\n]{0,300}\.(env|pem|key|crt|p12|pfx|jks|keystore|credentials|secret)/gi,
         risk: 'critical',
         title: 'Reading sensitive credential files',
         description: 'Attempts to read environment variables, private keys or credential files'
       },
       {
-        pattern: /cat\s+[^\n]*(\.ssh\/|\.gnupg\/|\.aws\/|\.kube\/|\.docker\/)/gi,
+        pattern: /cat\s+[^\n]{0,300}(\.ssh\/|\.gnupg\/|\.aws\/|\.kube\/|\.docker\/)/gi,
         risk: 'critical',
         title: 'Reading sensitive config directories',
         description: 'Attempts to access SSH, GPG, AWS, Kubernetes or Docker configuration'
       },
       {
-        pattern: /cat\s+[^\n]*(\/etc\/shadow|\/etc\/passwd|\/etc\/sudoers)/gi,
+        pattern: /cat\s+[^\n]{0,300}(\/etc\/shadow|\/etc\/passwd|\/etc\/sudoers)/gi,
         risk: 'critical',
         title: 'Reading system auth files',
         description: 'Attempts to read system password or permission configuration files'
       },
       {
-        pattern: /find\s+[^\n]*-name\s+[^\n]*\.(pem|key|env|secret|credential)/gi,
+        pattern: /find\s+[^\n]{0,300}-name\s+[^\n]{0,300}\.(pem|key|env|secret|credential)/gi,
         risk: 'high',
         title: 'Searching for sensitive files',
         description: 'Using find to search for credential or secret files'
       },
       {
-        pattern: /grep\s+(-r\s+)?[^\n]*(password|secret|api.?key|token|credential)/gi,
+        pattern: /grep\s+(-r\s+)?[^\n]{0,300}(password|secret|api.?key|token|credential)/gi,
         risk: 'high',
         title: 'Searching for passwords',
         description: 'Searching for password or key keywords in files'
       },
       {
-        pattern: /ls\s+(-la?\s+)?[^\n]*(\.ssh|\.gnupg|\.aws|\.config)/gi,
+        pattern: /ls\s+(-la?\s+)?[^\n]{0,300}(\.ssh|\.gnupg|\.aws|\.config)/gi,
         risk: 'medium',
         title: 'Listing sensitive directories',
         description: 'Listing directories that may contain credentials'
@@ -46,19 +48,19 @@ export class DataExfiltrationScanner {
 
       // Reading browser data
       {
-        pattern: /[^\n]*(Chrome|Firefox|Safari|Edge)[^\n]*(Login\s*Data|cookies|Cookies|passwords)/gi,
+        pattern: /(Chrome|Firefox|Safari|Edge)[^\n]{0,200}(Login\s*Data|cookies|Cookies|passwords)/gi,
         risk: 'critical',
         title: 'Accessing browser passwords/cookies',
         description: 'Attempts to read browser stored login credentials or cookies'
       },
       {
-        pattern: /[^\n]*\.mozilla\/firefox\/[^\n]*\.sqlite/gi,
+        pattern: /\.mozilla\/firefox\/[^\n]{0,200}\.sqlite/gi,
         risk: 'critical',
         title: 'Accessing Firefox database',
         description: 'Attempts to read Firefox SQLite database'
       },
       {
-        pattern: /[^\n]*\.config\/google-chrome\/[^\n]*/gi,
+        pattern: /\.config\/google-chrome\//gi,
         risk: 'high',
         title: 'Accessing Chrome config',
         description: 'Attempts to read Chrome browser configuration'
@@ -66,7 +68,7 @@ export class DataExfiltrationScanner {
 
       // Reading password managers
       {
-        pattern: /[^\n]*(1password|bitwarden|lastpass|keepass|dashlane)[^\n]*/gi,
+        pattern: /(1password|bitwarden|lastpass|keepass|dashlane)/gi,
         risk: 'critical',
         title: 'Accessing password manager',
         description: 'Attempts to access password manager data'
@@ -74,7 +76,7 @@ export class DataExfiltrationScanner {
 
       // Reading history files
       {
-        pattern: /cat\s+[^\n]*(\.bash_history|\.zsh_history|\.history|fish_history)/gi,
+        pattern: /cat\s+[^\n]{0,300}(\.bash_history|\.zsh_history|\.history|fish_history)/gi,
         risk: 'high',
         title: 'Reading shell history',
         description: 'Attempts to read command history which may contain sensitive commands'
@@ -82,13 +84,13 @@ export class DataExfiltrationScanner {
 
       // Reading Git credentials
       {
-        pattern: /cat\s+[^\n]*\.git-credentials/gi,
+        pattern: /cat\s+[^\n]{0,300}\.git-credentials/gi,
         risk: 'critical',
         title: 'Reading Git credentials',
         description: 'Attempts to read Git stored authentication info'
       },
       {
-        pattern: /cat\s+[^\n]*\.gitconfig/gi,
+        pattern: /cat\s+[^\n]{0,300}\.gitconfig/gi,
         risk: 'medium',
         title: 'Reading Git config',
         description: 'Reading Git config which may contain user info'
@@ -96,13 +98,13 @@ export class DataExfiltrationScanner {
 
       // Reading databases
       {
-        pattern: /cat\s+[^\n]*\.(sql|sqlite|db|sqlite3)/gi,
+        pattern: /cat\s+[^\n]{0,300}\.(sql|sqlite|db|sqlite3)/gi,
         risk: 'high',
         title: 'Reading database files',
         description: 'Attempts to read local database files'
       },
       {
-        pattern: /sqlite3\s+[^\n]*\.(db|sqlite)/gi,
+        pattern: /sqlite3\s+[^\n]{0,300}\.(db|sqlite)/gi,
         risk: 'high',
         title: 'Accessing SQLite database',
         description: 'Using sqlite3 to access local database'
@@ -113,25 +115,25 @@ export class DataExfiltrationScanner {
     this.exfiltrationPatterns = [
       // curl/wget POST data transmission
       {
-        pattern: /curl\s+[^\n]*(-d|--data|--data-binary|--data-raw)\s+[^\n]*(\$\(|`|\$\{)/gi,
+        pattern: /curl\s+[^\n]{0,300}(-d|--data|--data-binary|--data-raw)\s+[^\n]{0,300}(\$\(|`|\$\{)/gi,
         risk: 'critical',
         title: 'curl sending command output',
         description: 'Using curl to send command execution results to external server'
       },
       {
-        pattern: /curl\s+[^\n]*(-d|--data)\s+@/gi,
+        pattern: /curl\s+[^\n]{0,300}(-d|--data)\s+@/gi,
         risk: 'critical',
         title: 'curl uploading file content',
         description: 'Using curl to upload local files to external server'
       },
       {
-        pattern: /curl\s+[^\n]*-F\s+[^\n]*file=@/gi,
+        pattern: /curl\s+[^\n]{0,300}-F\s+[^\n]{0,300}file=@/gi,
         risk: 'critical',
         title: 'curl form file upload',
         description: 'Using curl form to upload files externally'
       },
       {
-        pattern: /wget\s+[^\n]*--post-file/gi,
+        pattern: /wget\s+[^\n]{0,300}--post-file/gi,
         risk: 'critical',
         title: 'wget file upload',
         description: 'Using wget to upload files to external server'
@@ -139,13 +141,13 @@ export class DataExfiltrationScanner {
 
       // Base64 encoded exfiltration
       {
-        pattern: /base64\s+[^\n]*\|\s*curl/gi,
+        pattern: /base64\s+[^\n]{0,300}\|\s*curl/gi,
         risk: 'critical',
         title: 'Base64 encoded exfiltration',
         description: 'Sending base64 encoded data via curl'
       },
       {
-        pattern: /cat\s+[^\n]*\|\s*base64\s*\|\s*(curl|wget|nc)/gi,
+        pattern: /cat\s+[^\n]{0,300}\|\s*base64\s*\|\s*(curl|wget|nc)/gi,
         risk: 'critical',
         title: 'Read, encode and exfiltrate',
         description: 'Reading files, encoding and sending externally'
@@ -153,13 +155,13 @@ export class DataExfiltrationScanner {
 
       // DNS exfiltration
       {
-        pattern: /nslookup\s+[^\n]*\$\(/gi,
+        pattern: /nslookup\s+[^\n]{0,300}\$\(/gi,
         risk: 'critical',
         title: 'DNS tunnel exfiltration',
         description: 'Exfiltrating data via DNS queries (DNS tunneling)'
       },
       {
-        pattern: /dig\s+[^\n]*\$\(/gi,
+        pattern: /dig\s+[^\n]{0,300}\$\(/gi,
         risk: 'critical',
         title: 'DNS exfil via dig',
         description: 'Using dig for DNS tunnel data exfiltration'
@@ -167,13 +169,13 @@ export class DataExfiltrationScanner {
 
       // Netcat exfiltration
       {
-        pattern: /nc\s+[^\n]*<\s*[^\n]*\.(env|pem|key|sql|db)/gi,
+        pattern: /nc\s+[^\n]{0,300}<\s*[^\n]{0,300}\.(env|pem|key|sql|db)/gi,
         risk: 'critical',
         title: 'Netcat sending sensitive files',
         description: 'Using netcat to send sensitive files directly'
       },
       {
-        pattern: /cat\s+[^\n]*\|\s*nc\s+/gi,
+        pattern: /cat\s+[^\n]{0,300}\|\s*nc\s+/gi,
         risk: 'critical',
         title: 'Netcat data exfiltration',
         description: 'Sending file contents externally via netcat'
@@ -181,7 +183,7 @@ export class DataExfiltrationScanner {
 
       // Email exfiltration
       {
-        pattern: /mail\s+[^\n]*-s\s+[^\n]*<\s*[^\n]*\./gi,
+        pattern: /mail\s+[^\n]{0,300}-s\s+[^\n]{0,300}<\s*[^\n]{0,300}\./gi,
         risk: 'high',
         title: 'Email file sending',
         description: 'Sending file contents via email'
@@ -195,19 +197,19 @@ export class DataExfiltrationScanner {
 
       // FTP/SCP exfiltration
       {
-        pattern: /scp\s+[^\n]*\.(env|pem|key|sql|credentials)/gi,
+        pattern: /scp\s+[^\n]{0,300}\.(env|pem|key|sql|credentials)/gi,
         risk: 'critical',
         title: 'SCP uploading sensitive files',
         description: 'Using SCP to upload sensitive files to remote server'
       },
       {
-        pattern: /ftp\s+[^\n]*put\s+/gi,
+        pattern: /ftp\s+[^\n]{0,300}put\s+/gi,
         risk: 'high',
         title: 'FTP upload',
         description: 'Uploading files via FTP'
       },
       {
-        pattern: /rsync\s+[^\n]*@[^\n]*:/gi,
+        pattern: /rsync\s+[^\n]{0,300}@[^\n]{0,300}:/gi,
         risk: 'medium',
         title: 'rsync to remote',
         description: 'Using rsync to sync files to remote server'
@@ -215,13 +217,13 @@ export class DataExfiltrationScanner {
 
       // Cloud upload
       {
-        pattern: /aws\s+s3\s+(cp|sync|mv)\s+[^\n]*s3:\/\//gi,
+        pattern: /aws\s+s3\s+(cp|sync|mv)\s+[^\n]{0,300}s3:\/\//gi,
         risk: 'high',
         title: 'AWS S3 upload',
         description: 'Uploading files to AWS S3'
       },
       {
-        pattern: /gsutil\s+(cp|rsync)\s+[^\n]*gs:\/\//gi,
+        pattern: /gsutil\s+(cp|rsync)\s+[^\n]{0,300}gs:\/\//gi,
         risk: 'high',
         title: 'Google Cloud Storage upload',
         description: 'Uploading files to GCS'
@@ -237,31 +239,31 @@ export class DataExfiltrationScanner {
     // ===== Combined Read + Send Patterns =====
     this.combinedPatterns = [
       {
-        pattern: /(\$\(cat|`cat)\s+[^\n)]+\)[^\n]*(curl|wget|nc|http)/gi,
+        pattern: /(\$\(cat|`cat)\s+[^\n)]{1,300}\)[^\n]{0,300}(curl|wget|nc|http)/gi,
         risk: 'critical',
         title: 'Read and send data',
         description: 'Reading file content and sending directly to network'
       },
       {
-        pattern: /for\s+[^\n]*in\s+[^\n]*\*\.(env|key|pem)[^\n]*do[^\n]*(curl|wget|nc)/gi,
+        pattern: /for\s+[^\n]{0,300}in\s+[^\n]{0,300}\*\.(env|key|pem)[^\n]{0,300}do[^\n]{0,300}(curl|wget|nc)/gi,
         risk: 'critical',
         title: 'Batch exfiltrate sensitive files',
         description: 'Loop reading and sending multiple sensitive files'
       },
       {
-        pattern: /find\s+[^\n]*-exec[^\n]*(curl|wget|nc)[^\n]*\{\}/gi,
+        pattern: /find\s+[^\n]{0,300}-exec[^\n]{0,300}(curl|wget|nc)[^\n]{0,300}\{\}/gi,
         risk: 'critical',
         title: 'Find + exfil combo',
         description: 'Searching files and executing exfiltration on each'
       },
       {
-        pattern: /tar\s+[^\n]*\|\s*(curl|nc|base64)/gi,
+        pattern: /tar\s+[^\n]{0,300}\|\s*(curl|nc|base64)/gi,
         risk: 'critical',
         title: 'Archive and exfiltrate',
         description: 'Archiving multiple files and sending directly'
       },
       {
-        pattern: /zip\s+[^\n]*&&[^\n]*(curl|wget|scp)/gi,
+        pattern: /zip\s+[^\n]{0,300}&&[^\n]{0,300}(curl|wget|scp)/gi,
         risk: 'critical',
         title: 'Compress and upload',
         description: 'Compressing files then uploading externally'
@@ -283,7 +285,7 @@ export class DataExfiltrationScanner {
         description: 'Listing and sending all environment variables'
       },
       {
-        pattern: /echo\s+\$[A-Z_]+(KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL)[^\n]*(curl|wget)/gi,
+        pattern: /echo\s+\$[A-Z_]+(KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL)[^\n]{0,300}(curl|wget)/gi,
         risk: 'critical',
         title: 'Sensitive env var exfiltration',
         description: 'Sending sensitive environment variables'
@@ -299,31 +301,31 @@ export class DataExfiltrationScanner {
     // ===== System Reconnaissance =====
     this.reconPatterns = [
       {
-        pattern: /(whoami|id|hostname|uname\s+-a)[^\n]*\|\s*(curl|wget|nc)/gi,
+        pattern: /(whoami|id|hostname|uname\s+-a)[^\n]{0,300}\|\s*(curl|wget|nc)/gi,
         risk: 'high',
         title: 'System info exfiltration',
         description: 'Collecting and sending system identification info'
       },
       {
-        pattern: /ifconfig|ip\s+addr[^\n]*\|\s*(curl|wget|nc)/gi,
+        pattern: /ifconfig|ip\s+addr[^\n]{0,300}\|\s*(curl|wget|nc)/gi,
         risk: 'high',
         title: 'Network config exfiltration',
         description: 'Sending network configuration info'
       },
       {
-        pattern: /ps\s+(aux|ef)[^\n]*\|\s*(curl|wget|nc)/gi,
+        pattern: /ps\s+(aux|ef)[^\n]{0,300}\|\s*(curl|wget|nc)/gi,
         risk: 'medium',
         title: 'Process list exfiltration',
         description: 'Sending system process list'
       },
       {
-        pattern: /netstat|ss\s+-[^\n]*\|\s*(curl|wget|nc)/gi,
+        pattern: /netstat|ss\s+-[^\n]{0,300}\|\s*(curl|wget|nc)/gi,
         risk: 'high',
         title: 'Network connection exfiltration',
         description: 'Sending system network connection info'
       },
       {
-        pattern: /lsof[^\n]*\|\s*(curl|wget|nc)/gi,
+        pattern: /lsof[^\n]{0,300}\|\s*(curl|wget|nc)/gi,
         risk: 'medium',
         title: 'Open file list exfiltration',
         description: 'Sending list of open files'
@@ -333,25 +335,25 @@ export class DataExfiltrationScanner {
     // ===== Persistence Mechanisms =====
     this.persistencePatterns = [
       {
-        pattern: /crontab\s+-[el]?[^\n]*curl|wget/gi,
+        pattern: /crontab\s+-[el]?[^\n]{0,300}curl|wget/gi,
         risk: 'critical',
         title: 'Cron scheduled exfiltration',
         description: 'Setting up scheduled task for persistent data exfiltration'
       },
       {
-        pattern: /echo[^\n]*>>\s*~?\/?\.bashrc/gi,
+        pattern: /echo[^\n]{0,300}>>\s*~?\/?\.bashrc/gi,
         risk: 'high',
         title: 'Modifying .bashrc',
         description: 'Modifying shell startup file, may plant backdoor'
       },
       {
-        pattern: /echo[^\n]*>>\s*~?\/?\.profile/gi,
+        pattern: /echo[^\n]{0,300}>>\s*~?\/?\.profile/gi,
         risk: 'high',
         title: 'Modifying .profile',
         description: 'Modifying user profile, may plant backdoor'
       },
       {
-        pattern: /systemctl\s+(enable|start)[^\n]*/gi,
+        pattern: /systemctl\s+(enable|start)[^\n]{0,300}/gi,
         risk: 'medium',
         title: 'Enabling system service',
         description: 'Enabling system service, may be used for persistence'
@@ -395,8 +397,8 @@ export class DataExfiltrationScanner {
       }
     }
 
-    // Check compound behaviors
-    this.checkCompoundBehaviors(content, findings);
+    // Check compound behaviors (judged per file; cross-file-only matches downgraded)
+    checkCompoundPerFile(skillContent, (c, f) => this.checkCompoundBehaviors(c, f), findings);
 
     return findings;
   }
@@ -411,9 +413,10 @@ export class DataExfiltrationScanner {
 
   checkCompoundBehaviors(content, findings) {
     // Check if both read and send behaviors exist
-    const hasRead = /cat\s+|head\s+|tail\s+|less\s+|more\s+|find\s+|grep\s+/gi.test(content);
-    const hasSend = /curl\s+|wget\s+|nc\s+|scp\s+|ftp\s+|rsync\s+/gi.test(content);
-    const hasEncode = /base64|gzip|tar\s+|zip\s+/gi.test(content);
+    // Whole command words only: `nc\s+` alone matched "async function".
+    const hasRead = /\b(cat|head|tail|less|more|find|grep)\s+/i.test(content);
+    const hasSend = /\b(curl|wget|nc|scp|ftp|rsync)\s+/i.test(content);
+    const hasEncode = /\b(base64|gzip)\b|\b(tar|zip)\s+/i.test(content);
 
     if (hasRead && hasSend) {
       findings.high.push({
@@ -438,10 +441,10 @@ export class DataExfiltrationScanner {
       /~\/\.gnupg/gi,
       /~\/\.kube/gi,
       /\/etc\/shadow/gi,
-      /\.env/gi,
+      /\.env\b/gi, // not `os.environ`
       /credentials/gi,
       /\.pem/gi,
-      /\.key/gi
+      /\.key\b/gi // not `.keys()`
     ];
 
     let sensitiveAccessCount = 0;
@@ -460,7 +463,7 @@ export class DataExfiltrationScanner {
     }
 
     // Check loop exfiltration pattern
-    const hasLoop = /for\s+|while\s+|until\s+/gi.test(content);
+    const hasLoop = /\b(for|while|until)\s+/i.test(content);
     if (hasLoop && hasSend) {
       findings.high.push({
         title: '[Behavior] Loop network operation',

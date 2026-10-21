@@ -3,14 +3,14 @@
 [![npm version](https://img.shields.io/npm/v/claude-skill-antivirus.svg)](https://www.npmjs.com/package/claude-skill-antivirus)
 [![CI](https://github.com/claude-world/claude-skill-antivirus/actions/workflows/ci.yml/badge.svg)](https://github.com/claude-world/claude-skill-antivirus/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org/)
-[![Claude Code](https://img.shields.io/badge/Claude_Code-Opus_4.6-blueviolet.svg)](https://docs.anthropic.com/en/docs/claude-code)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D22.0.0-brightgreen.svg)](https://nodejs.org/)
+[![Claude Code](https://img.shields.io/badge/Claude_Code-Opus_5.5-blueviolet.svg)](https://docs.anthropic.com/en/docs/claude-code)
 
 一個安全的 Claude Skills 安裝器，內建完整的惡意行為偵測引擎。
 
 **Skills Installer + Antivirus for Claude**
 
-支援 Claude Code Opus 4.6、Sonnet 4.6、Haiku 4.5 模型。
+支援 Claude Code Opus 5.5、Sonnet 5.5、Haiku 5.5、Fable 5.1 模型。本工具會掃描整個 skill 目錄（不只 SKILL.md）。
 
 [English](./README.md) | [SkillsMP 掃描報告](./SCAN-REPORT.md)
 
@@ -27,11 +27,13 @@
 
 **約 3% 的 skills 可能存在潛在風險。** 詳見[完整報告](./SCAN-REPORT.md)。
 
+> **覆蓋範圍說明**：此平台掃描（v2.0.0，2026 年 1 月）使用 SkillsMP API，而該 API 只提供每個 skill 的 `SKILL.md`，因此這裡的「安全」僅代表 manifest 中沒有發現；腳本並未被分析（見 [#33](https://github.com/claude-world/claude-skill-antivirus/issues/33)）。若要取得完整結果，請掃描 skill 的目錄或儲存庫。
+
 > **注意**：部分發現可能是誤判（例如：合法的 1Password/Bitwarden 整合工具）。建議對標記的 skills 進行人工審查。
 
 ## 功能特色
 
-- **🛡️ 九大掃描引擎**: 全方位偵測惡意 Skills
+- **🛡️ 十大掃描引擎**: 全方位偵測惡意 Skills（掃描整個目錄，不只 SKILL.md）
 - **⚠️ 風險評估**: 將發現分類為 Critical、High、Medium、Low、Info
 - **📊 視覺化報告**: 彩色安全報告與分數
 - **🚫 自動阻擋**: 預設阻擋 CRITICAL 風險的 Skills
@@ -209,12 +211,23 @@ skill-batch-scan --api-key <key> --output ./my-reports --lang zh-TW
 | DoS 攻擊 | 迴圈呼叫 Task、無限遞迴 |
 | 資料竊取 | Read + WebFetch 組合、存取敏感資料 |
 
+### 10. 檔案工件偵測 (FileArtifactScanner)
+
+**標記無法以文字審查、常被用來藏匿 payload 的非文字工件**：
+
+| 類別 | 偵測項目 |
+|------|----------|
+| 編譯 / 原生檔 | `.pyc`、`.pyo`、`.so`、`.node`、`.dll`、`.dylib`、`.exe`、`.wasm`、`.class` |
+| 壓縮檔 | skill 內夾帶的 `.zip`、`.tar`、`.gz`、`.7z`、`.jar`、`.whl` |
+| 二進位內容 | 以內容判定的非文字檔，只掃描其可讀字串 |
+| 覆蓋率異常 | 非預期目錄、未跟隨的 symlink、被截斷的檔案、掃描上限 |
+
 ## 輸出範例
 
 ### 安全的 Skill
 
 ```
-🔧 Claude Skill Installer v2.0.0
+🔧 Claude Skill Installer v2.2.0
 
 📦 已載入 Skill: example-safe-skill
 
@@ -238,7 +251,7 @@ skill-batch-scan --api-key <key> --output ./my-reports --lang zh-TW
 ### 偵測到惡意 Skill
 
 ```
-🔧 Claude Skill Installer v2.0.0
+🔧 Claude Skill Installer v2.2.0
 
 📦 已載入 Skill: suspicious-skill
 
@@ -308,7 +321,7 @@ claude-skill-antivirus/
 │   │   ├── en.js                  # 英文翻譯
 │   │   └── zh-TW.js               # 繁體中文翻譯
 │   ├── scanner/
-│   │   ├── index.js               # 主掃描器（整合 9 個引擎）
+│   │   ├── index.js               # 主掃描器（整合 10 個引擎）
 │   │   ├── dangerous-commands.js  # 危險指令偵測
 │   │   ├── permissions.js         # 權限檢查
 │   │   ├── external-connections.js # 外部連線分析
@@ -329,6 +342,16 @@ claude-skill-antivirus/
 ```
 
 ## 更新紀錄
+
+### v2.2.0 (2026-10-21)
+- **安全修復（[#33](https://github.com/claude-world/claude-skill-antivirus/issues/33)）**：掃描器現在會走訪**整個 skill 目錄**，而非只讀取 `SKILL.md`，因此藏在 `scripts/`、巢狀資料夾或 `__pycache__/*.pyc` 的程式碼不再能騙過掃描而得到 SAFE 100/100。由 [@nedlir](https://github.com/nedlir) 回報；目錄走訪基礎由 [@Yahhi](https://github.com/Yahhi) 貢獻（[#34](https://github.com/claude-world/claude-skill-antivirus/pull/34)）。
+- 新增**檔案工件偵測**引擎（第 10 個），以檔頭魔數標記編譯／二進位／壓縮檔；PEP 552 未檢查雜湊的 `.pyc` 列為 CRITICAL；被略過的目錄、未跟隨的 symlink、截斷的檔案與掃描上限都會列為發現。
+- GitHub 儲存庫、`tree/` 與 `blob/.../SKILL.md` 網址會透過 GitHub API 走訪整個 skill；`.zip` 輸入新增 zip-slip、加密／過大項目偵測與大小上限。
+- 安裝器強化：拒絕 zip-slip 路徑與未完整掃描的 skill，並逐位元組寫入二進位檔。
+- 修復各引擎的 ReDoS（特製的超長行可能使掃描器卡住），以及 SKILL.md 含 `| name |` 表格時的當機。
+- 因應掃描實際程式碼調整比對精準度。附帶腳本的 skill 會比 2.1.x 顯示更多發現，請逐一檢視。
+- 確認相容 Claude Code Opus 5.5、Sonnet 5.5、Haiku 5.5、Fable 5.1。
+- Node.js >= 22；升級相依套件（commander 15、inquirer 14、chalk 6、ora 9、yaml 2.9、adm-zip 0.6），並以內建 `fetch` 取代 `node-fetch`。
 
 ### v2.1.0 (2026-03-13)
 - 確認相容 Claude Code Opus 4.6

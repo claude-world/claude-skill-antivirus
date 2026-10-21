@@ -22,7 +22,7 @@ export class DangerousCommandScanner {
         description: 'Attempting to format filesystem'
       },
       {
-        pattern: /dd\s+if=.*of=\/dev\//gi,
+        pattern: /dd\s+if=.{0,300}of=\/dev\//gi,
         title: 'Direct disk write with dd',
         description: 'Writing directly to disk device'
       },
@@ -42,12 +42,12 @@ export class DangerousCommandScanner {
         description: 'Setting world-writable permissions on root directory'
       },
       {
-        pattern: /curl\s+[^|]*\|\s*(ba)?sh/gi,
+        pattern: /curl\s+[^|]{0,300}\|\s*(ba)?sh/gi,
         title: 'curl piped to shell',
         description: 'Downloading and executing remote script'
       },
       {
-        pattern: /wget\s+[^|]*\|\s*(ba)?sh/gi,
+        pattern: /wget\s+[^|]{0,300}\|\s*(ba)?sh/gi,
         title: 'wget piped to shell',
         description: 'Downloading and executing remote script'
       },
@@ -66,7 +66,7 @@ export class DangerousCommandScanner {
         description: 'Accessing password, shadow, or SSH/GPG files'
       },
       {
-        pattern: /\$\((cat|echo)\s+[^)]*\.(pem|key|crt)\)/gi,
+        pattern: /\$\((cat|echo)\s+[^)]{0,300}\.(pem|key|crt)\)/gi,
         title: 'Reading key/certificate files',
         description: 'Accessing private keys or certificates'
       },
@@ -91,7 +91,7 @@ export class DangerousCommandScanner {
         description: 'Creating network socket via Python'
       },
       {
-        pattern: /base64\s+-d.*\|\s*(ba)?sh/gi,
+        pattern: /base64\s+-d.{0,300}\|\s*(ba)?sh/gi,
         title: 'Base64 decode to shell',
         description: 'Decoding and executing base64 content'
       },
@@ -106,7 +106,7 @@ export class DangerousCommandScanner {
         description: 'Skipping SSL/TLS certificate verification'
       },
       {
-        pattern: /sudo\s+.*NOPASSWD/gi,
+        pattern: /sudo\s+.{0,300}NOPASSWD/gi,
         title: 'NOPASSWD sudo configuration',
         description: 'Configuring passwordless sudo access'
       }

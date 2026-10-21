@@ -6,15 +6,14 @@
  */
 
 import { program } from 'commander';
-import fetch from 'node-fetch';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 import ora from 'ora';
 import chalk from 'chalk';
 import { SecurityScanner } from './scanner/index.js';
 import { setLanguage } from './i18n/index.js';
+import { VERSION } from './version.js';
 
-const VERSION = '1.0.0';
 const SKILLSMP_API_BASE = 'https://skillsmp.com/api/v1';
 
 class BatchScanner {
@@ -60,30 +59,9 @@ class BatchScanner {
   }
 
   async fetchSkillContent(skill) {
-    // Try to get skill content from the API
-    // SkillsMP skills typically have rawContent or downloadUrl
-
-    if (skill.rawContent) {
-      return {
-        name: skill.name || skill.id,
-        source: `skillsmp://${skill.id}`,
-        files: [{
-          name: 'SKILL.md',
-          content: skill.rawContent,
-          path: 'SKILL.md'
-        }],
-        metadata: {
-          name: skill.name,
-          description: skill.description,
-          author: skill.author,
-          'allowed-tools': skill.allowedTools || skill['allowed-tools']
-        },
-        rawContent: skill.rawContent
-      };
-    }
-
-    // Construct minimal content from available data
-    const content = this.constructSkillContent(skill);
+    // The SkillsMP API exposes a skill's manifest (rawContent) or metadata,
+    // never its scripts, so every verdict here is manifest-only (#33).
+    const content = skill.rawContent || this.constructSkillContent(skill);
 
     return {
       name: skill.name || skill.id,
@@ -99,7 +77,15 @@ class BatchScanner {
         author: skill.author,
         'allowed-tools': skill.allowedTools || skill['allowed-tools']
       },
-      rawContent: content
+      rawContent: content,
+      loaderFindings: [{
+        risk: 'medium',
+        title: 'Only the manifest was analyzed',
+        description: 'The SkillsMP API provides only the skill manifest, so executable files in the skill were NOT analyzed. Scan the skill directory or repository for a complete verdict.',
+        location: `skillsmp://${skill.id}`,
+        scanner: 'SkillsMPBatch'
+      }],
+      coverage: { filesScanned: 1, bytesScanned: Buffer.byteLength(content), truncatedFiles: 0, complete: false }
     };
   }
 
@@ -268,6 +254,11 @@ class BatchScanner {
 **Total Skills on Platform**: ${this.results.totalSkills}
 **Skills Scanned**: ${s.totalScanned}
 **Errors**: ${s.totalErrors}
+
+> **Coverage**: the SkillsMP API exposes only each skill's manifest, so these
+> verdicts cover \`SKILL.md\` alone; scripts and other files were not analyzed.
+> Scan a skill's directory or repository with \`skill-install <source> --scan-only\`
+> for a complete verdict.
 
 ## Risk Distribution
 

@@ -3,6 +3,11 @@
 > **Scan Date**: January 18, 2026
 > **Scanner Version**: claude-skill-antivirus v2.0.0
 > **Total Skills Scanned**: 71,577
+>
+> **Coverage note (added in v2.2.0)**: the SkillsMP API exposes only each skill's
+> `SKILL.md`, so this report reflects manifest content only. Scripts and other files
+> were not analyzed, and "SAFE" here means "no findings in the manifest"
+> (see [#33](https://github.com/claude-world/claude-skill-antivirus/issues/33)).
 
 ## Executive Summary
 

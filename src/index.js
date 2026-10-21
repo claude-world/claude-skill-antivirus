@@ -8,13 +8,14 @@ import { SkillDownloader } from './utils/downloader.js';
 import { SecurityScanner } from './scanner/index.js';
 import { SkillInstaller } from './utils/installer.js';
 import { setLanguage, t, getAvailableLanguages } from './i18n/index.js';
+import { VERSION } from './version.js';
 
 const program = new Command();
 
 program
   .name('skill-install')
   .description('A secure Claude Skills installer with malicious operation detection')
-  .version('2.1.3');
+  .version(VERSION);
 
 program
   .argument('<source>', 'Skill URL (SkillsMP link) or local path')
@@ -28,7 +29,7 @@ program
     // Set language first
     setLanguage(options.lang);
 
-    console.log(chalk.cyan.bold(`\n🔧 ${t('cli.title')}\n`));
+    console.log(chalk.cyan.bold(`\n🔧 ${t('cli.title', { version: VERSION })}\n`));
 
     const spinner = ora();
 

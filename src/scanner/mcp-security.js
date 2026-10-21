@@ -7,7 +7,7 @@ export class MCPSecurityScanner {
     // Untrusted MCP Server sources
     this.untrustedSources = [
       {
-        pattern: /npx\s+[^@\s]*[^/\s](?!@modelcontextprotocol|@anthropic)/gi,
+        pattern: /npx\s+[^@\s]{0,300}[^/\s](?!@modelcontextprotocol|@anthropic)/gi,
         risk: 'medium',
         title: 'Non-official MCP Server',
         description: 'Using non-Anthropic official MCP server, verify the source is trusted'
@@ -19,7 +19,7 @@ export class MCPSecurityScanner {
         description: 'Executing npx directly from URL, extremely dangerous'
       },
       {
-        pattern: /mcp.*github\.com\/[^/]+\/[^/]+(?!anthropic|modelcontextprotocol)/gi,
+        pattern: /mcp.{0,300}github\.com\/[^/]{1,300}\/[^/]{1,300}(?!anthropic|modelcontextprotocol)/gi,
         risk: 'medium',
         title: 'Third-party GitHub MCP Server',
         description: 'Using MCP server from third-party GitHub repository'
@@ -29,13 +29,13 @@ export class MCPSecurityScanner {
     // Dangerous MCP tool permissions
     this.dangerousMCPTools = [
       {
-        pattern: /mcp[_-]?filesystem.*allowed.*['"]\*['"]/gi,
+        pattern: /mcp[_-]?filesystem.{0,300}allowed.{0,300}['"]\*['"]/gi,
         risk: 'critical',
         title: 'MCP Filesystem unrestricted access',
         description: 'MCP filesystem server allows access to all paths'
       },
       {
-        pattern: /mcp[_-]?filesystem[^}]*allowedDirectories[^}]*['"](\/|~)['"]/gi,
+        pattern: /mcp[_-]?filesystem[^}]{0,300}allowedDirectories[^}]{0,300}['"](\/|~)['"]/gi,
         risk: 'critical',
         title: 'MCP access to root or home directory',
         description: 'MCP server authorized to access root directory or entire home directory'
@@ -75,7 +75,7 @@ export class MCPSecurityScanner {
         description: 'Passing sensitive environment variables in MCP configuration'
       },
       {
-        pattern: /env['":\s]+\{[^}]*(?:PASSWORD|SECRET|API_KEY|TOKEN)/gi,
+        pattern: /env['":\s]+\{[^}]{0,300}(?:PASSWORD|SECRET|API_KEY|TOKEN)/gi,
         risk: 'high',
         title: 'MCP config contains credentials',
         description: 'MCP configuration file contains sensitive credentials'
@@ -95,7 +95,7 @@ export class MCPSecurityScanner {
         title: 'MCP CLI configuration command'
       },
       {
-        pattern: /\.mcp\.json|mcp-config|settings\.json.*mcp/gi,
+        pattern: /\.mcp\.json|mcp-config|settings\.json.{0,300}mcp/gi,
         isConfig: true,
         title: 'MCP configuration file'
       }

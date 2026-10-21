@@ -97,25 +97,25 @@ export class ExternalConnectionScanner {
     // Data exfiltration patterns
     this.exfiltrationPatterns = [
       {
-        pattern: /curl\s+.*-d\s+.*\$\(/gi,
+        pattern: /curl\s+.{0,300}-d\s+.{0,300}\$\(/gi,
         risk: 'critical',
         title: 'Curl POST with command output',
         description: 'Sending command output to external server'
       },
       {
-        pattern: /curl\s+.*--data.*\$\{/gi,
+        pattern: /curl\s+.{0,300}--data.{0,300}\$\{/gi,
         risk: 'critical',
         title: 'Curl data with variable expansion',
         description: 'Sending variable data to external server'
       },
       {
-        pattern: /wget\s+.*--post-data/gi,
+        pattern: /wget\s+.{0,300}--post-data/gi,
         risk: 'high',
         title: 'Wget POST request',
         description: 'Sending data via wget POST'
       },
       {
-        pattern: /fetch\s*\([^)]+,\s*\{[^}]*method:\s*['"]POST/gi,
+        pattern: /fetch\s*\([^)]{1,300},\s*\{[^}]{0,300}method:\s*['"]POST/gi,
         risk: 'high',
         title: 'JavaScript fetch POST',
         description: 'Sending data via JavaScript fetch'
@@ -194,7 +194,7 @@ export class ExternalConnectionScanner {
   }
 
   extractUrls(content) {
-    const urlRegex = /https?:\/\/[^\s<>"')\]]+/gi;
+    const urlRegex = /https?:\/\/[^\s<>"')\]]{1,300}/gi;
     const matches = content.match(urlRegex) || [];
     return [...new Set(matches)]; // Deduplicate
   }
@@ -268,7 +268,7 @@ export class ExternalConnectionScanner {
   checkCredentialsInUrls(content, findings) {
     // API keys in URLs
     const apiKeyPatterns = [
-      /[?&](api[_-]?key|apikey|key|token|auth|secret|password)=([^&\s]+)/gi,
+      /[?&](api[_-]?key|apikey|key|token|auth|secret|password)=([^&\s]{1,300})/gi,
       /Authorization:\s*(Bearer|Basic)\s+[A-Za-z0-9+\/=]+/gi
     ];
 
