@@ -212,6 +212,13 @@ async function fetchBytes(url, maxBytes, { strict = false, headers = {} } = {}) 
 
 const encodePath = (p) => p.split('/').map(encodeURIComponent).join('/');
 
+// Loop instead of `/\/+$/`, which is polynomial on long runs of slashes.
+function stripTrailingSlashes(s) {
+  let end = s.length;
+  while (end > 0 && s[end - 1] === '/') end--;
+  return s.slice(0, end);
+}
+
 /**
  * SkillDownloader - Fetches and parses skill content from various sources.
  *
@@ -501,7 +508,7 @@ export class SkillDownloader {
   }
 
   getSkillsMPZipUrl(url) {
-    const skillId = new URL(url).pathname.split('/skills/').pop().replace(/\/+$/, '');
+    const skillId = stripTrailingSlashes(new URL(url).pathname.split('/skills/').pop());
     return `https://skillsmp.com/api/skills/${encodeURIComponent(skillId)}/download`;
   }
 
@@ -522,28 +529,37 @@ export class SkillDownloader {
   }
 
   extractSkillFromHtml(html) {
-    const patterns = [
-      /```markdown\n([\s\S]*?)```/,
-      /```md\n([\s\S]*?)```/,
-      /<pre[^>]*class="[^"]*skill[^"]*"[^>]*>([\s\S]*?)<\/pre>/i,
-      /<code[^>]*>([\s\S]*?)<\/code>/,
-    ];
+    // Linear indexOf scans instead of lazy `([\s\S]*?)` regexes: scraped HTML is
+    // untrusted, and a lazy regex re-scans from every unclosed opening marker.
+    const lower = html.toLowerCase();
+    const between = (start, close) => {
+      if (start < 0) return null;
+      const end = lower.indexOf(close, start);
+      return end < 0 ? null : html.slice(start, end);
+    };
+    const after = (marker) => {
+      const i = html.indexOf(marker);
+      return i < 0 ? -1 : i + marker.length;
+    };
+    const afterTag = (re) => {
+      const m = re.exec(html);
+      return m ? m.index + m[0].length : -1;
+    };
 
-    for (const pattern of patterns) {
-      const match = html.match(pattern);
-      if (match) {
-        return this.decodeHtmlEntities(match[1]);
-      }
-    }
+    const content =
+      between(after('```markdown\n'), '```') ??
+      between(after('```md\n'), '```') ??
+      between(afterTag(/<pre[^>]{0,200}class="[^"]{0,200}skill[^"]{0,200}"[^>]{0,200}>/i), '</pre>') ??
+      between(afterTag(/<code[^>]{0,200}>/), '</code>');
 
-    return this.constructSkillFromPageData(html);
+    return content !== null ? this.decodeHtmlEntities(content) : this.constructSkillFromPageData(html);
   }
 
   constructSkillFromPageData(html) {
-    const nameMatch = html.match(/<h1[^>]*>([^<]+)<\/h1>/i) ||
-                      html.match(/name['"]\s*:\s*['"]([^'"]+)['"]/);
-    const descMatch = html.match(/description['"]\s*:\s*['"]([^'"]+)['"]/);
-    const toolsMatch = html.match(/allowed-tools['"]\s*:\s*['"]([^'"]+)['"]/);
+    const nameMatch = html.match(/<h1[^>]{0,200}>([^<]{1,500})<\/h1>/i) ||
+                      html.match(/name['"]\s*:\s*['"]([^'"]{1,500})['"]/);
+    const descMatch = html.match(/description['"]\s*:\s*['"]([^'"]{1,2000})['"]/);
+    const toolsMatch = html.match(/allowed-tools['"]\s*:\s*['"]([^'"]{1,500})['"]/);
 
     const name = nameMatch ? nameMatch[1].trim() : 'unknown-skill';
     const description = descMatch ? descMatch[1] : '';
@@ -573,7 +589,8 @@ ${description}
       '&nbsp;': ' ',
     };
 
-    return text.replace(/&[^;]+;/g, (entity) => entities[entity] || entity);
+    // Entities are short tokens; an unbounded `&[^;]+;` was polynomial on "&&&...".
+    return text.replace(/&[#\w]{1,10};/g, (entity) => entities[entity] || entity);
   }
 
   extractNameFromUrl(url) {
@@ -635,7 +652,7 @@ ${description}
       ctx.incomplete = true;
     }
 
-    const prefix = dir ? `${dir.replace(/\/+$/, '')}/` : '';
+    const prefix = dir ? `${stripTrailingSlashes(dir)}/` : '';
     const nodes = (tree.tree || []).filter((n) => n.path.startsWith(prefix));
     if (nodes.length === 0) {
       throw new Error(`no files found under "${dir || '/'}"`);
@@ -881,11 +898,15 @@ ${description}
   }
 
   parseMetadataLines(text, metadata) {
-    const lines = text.split('\n');
-    for (const line of lines) {
-      const match = line.match(/^(\w[\w-]*)\s*:\s*(.+)$/);
-      if (match) {
-        metadata[match[1]] = match[2].trim();
+    // Split on the first colon instead of `^(\w[\w-]*)\s*:\s*(.+)$`, which was
+    // polynomial on CRLF input (`.` does not match the trailing `\r`).
+    for (const line of text.split('\n')) {
+      const colon = line.indexOf(':');
+      if (colon <= 0) continue;
+      const key = line.slice(0, colon).trimEnd();
+      const value = line.slice(colon + 1).trim();
+      if (value && /^\w[\w-]*$/.test(key)) {
+        metadata[key] = value;
       }
     }
   }

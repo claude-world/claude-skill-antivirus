@@ -14,7 +14,7 @@
   },
   "scripts": {
     "start": "node src/index.js",
-    "test": "node --test test/",
+    "test": "node --test test/*.test.js",
     "test:examples": "node src/index.js ./examples/safe-skill --scan-only && node src/index.js ./examples/malicious-skill --scan-only"
   },
   "keywords": [
