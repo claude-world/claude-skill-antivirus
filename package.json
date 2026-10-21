@@ -1,6 +1,6 @@
 {
   "name": "claude-skill-antivirus",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "A secure Claude Skills installer with comprehensive malicious operation detection - Skills 安裝器 + 防毒軟體",
   "main": "src/lib.js",
   "type": "module",
@@ -8,6 +8,7 @@
     ".": "./src/lib.js"
   },
   "bin": {
+    "claude-skill-antivirus": "src/index.js",
     "skill-install": "src/index.js",
     "claude-skill-av": "src/index.js",
     "skill-batch-scan": "src/batch-scanner.js"
