@@ -6,8 +6,7 @@
 [![Node.js](https://img.shields.io/badge/node-%3E%3D22.0.0-brightgreen.svg)](https://nodejs.org/)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-Opus_5.5-blueviolet.svg)](https://docs.anthropic.com/en/docs/claude-code)
 
-<!-- TODO: Replace with actual GIF -->
-<img src="assets/demo.gif" alt="Claude Skill Antivirus scanning a CLAUDE.md file for prompt injection" title="Demo shows: trigger scan → detect patterns → show results" />
+<img src="assets/demo.gif" alt="Two scans in a terminal: a safe skill scores LOW 90/100, then a skill hiding code in scripts/ scores CRITICAL 0/100 with five critical findings" title="A clean skill passes; one hiding code in scripts/ is caught" />
 
 A security scanner and safe installer for Claude Code Skills. It scans the **whole skill directory** — not just `SKILL.md` — to detect malicious patterns, hidden code, data exfiltration attempts, and dangerous operations before installing third-party skills.
 
